@@ -3,13 +3,21 @@
 use App\Http\Controllers\RiwayatController;
 use Illuminate\Support\Facades\Route;
 
+/*
+|--------------------------------------------------------------------------
+| Autentikasi (Login)
+|--------------------------------------------------------------------------
+*/
+Route::get('/login', function () {
+    return view('auth.login');
+})->name('login');
+
 
 /*
 |--------------------------------------------------------------------------
 | Dashboard
 |--------------------------------------------------------------------------
 */
-
 Route::get('/', function () {
     return view('Dashboard');
 })->name('dashboard');
@@ -20,7 +28,6 @@ Route::get('/', function () {
 | Jadwal Pakan
 |--------------------------------------------------------------------------
 */
-
 Route::get('/jadwal', function () {
     return view('Jadwal');
 })->name('jadwal');
@@ -31,7 +38,6 @@ Route::get('/jadwal', function () {
 | Stok Pakan
 |--------------------------------------------------------------------------
 */
-
 Route::get('/stok', function () {
     return view('Stok');
 })->name('stok');
@@ -42,7 +48,6 @@ Route::get('/stok', function () {
 | Prediksi Refill
 |--------------------------------------------------------------------------
 */
-
 Route::get('/prediksi', function () {
     return view('Prediksi');
 })->name('prediksi');
@@ -53,7 +58,6 @@ Route::get('/prediksi', function () {
 | Riwayat Pemberian Pakan
 |--------------------------------------------------------------------------
 */
-
 Route::get('/riwayat', [RiwayatController::class, 'index'])
     ->name('riwayat');
 
@@ -63,6 +67,5 @@ Route::get('/riwayat', [RiwayatController::class, 'index'])
 | Export Riwayat ke PDF
 |--------------------------------------------------------------------------
 */
-
 Route::get('/riwayat/export-pdf', [RiwayatController::class, 'exportPdf'])
     ->name('riwayat.export.pdf');
