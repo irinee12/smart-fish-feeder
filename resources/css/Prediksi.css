@@ -1,0 +1,213 @@
+/* ==========================================
+   PREDIKSI REFILL PAGE STYLING
+   ========================================== */
+
+.prediction-page {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    padding: 2rem;
+}
+
+/* --- Banner Prediksi Utama --- */
+.prediction-banner {
+    background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+    color: white;
+    padding: 2rem;
+    border-radius: 16px;
+    box-shadow: 0 4px 15px rgba(13, 110, 253, 0.2);
+    border: none;
+}
+
+.prediction-label {
+    display: inline-block;
+    background: rgba(255, 255, 255, 0.2);
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    letter-spacing: 0.5px;
+}
+
+.prediction-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.prediction-description {
+    font-size: 0.95rem;
+    opacity: 0.9;
+    max-width: 600px;
+    margin-bottom: 1.5rem;
+}
+
+.prediction-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 1rem;
+    border-radius: 12px;
+    backdrop-filter: blur(5px);
+}
+
+.prediction-summary-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.prediction-summary-label {
+    font-size: 0.75rem;
+    opacity: 0.8;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.prediction-summary-value {
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
+.prediction-summary-value span {
+    font-size: 0.8rem;
+    font-weight: 400;
+    opacity: 0.8;
+}
+
+/* --- Summary Metrics Grid --- */
+.prediction-metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1.25rem;
+}
+
+.prediction-metric-card {
+    padding: 1.25rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    border-radius: 12px;
+    background: #ffffff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02), 0 1px 6px rgba(0, 0, 0, 0.04);
+    border: 1px solid #f1f5f9;
+    transition: transform 0.2s ease;
+}
+
+.prediction-metric-card:hover {
+    transform: translateY(-2px);
+}
+
+.prediction-metric-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #64748b;
+}
+
+.prediction-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+}
+
+.prediction-icon-blue { background-color: #eff6ff; color: #3b82f6; }
+.prediction-icon-yellow { background-color: #fefce8; color: #eab308; }
+.prediction-icon-green { background-color: #f0fdf4; color: #22c55e; }
+
+.prediction-metric-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #0f172a;
+    display: flex;
+    align-items: baseline;
+    gap: 0.35rem;
+}
+
+.prediction-metric-value span {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #64748b;
+}
+
+.prediction-metric-sub {
+    font-size: 0.75rem;
+    color: #94a3b8;
+}
+
+/* --- Chart & Content Cards --- */
+.prediction-chart-card {
+    padding: 1.5rem;
+    background: #ffffff;
+    border-radius: 12px;
+    border: 1px solid #f1f5f9;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+}
+
+.prediction-chart-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 0.25rem;
+}
+
+.prediction-chart-description {
+    font-size: 0.8125rem;
+    color: #64748b;
+    margin-bottom: 1.25rem;
+}
+
+.prediction-empty-chart {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 3rem 1rem;
+    background-color: #f8fafc;
+    border: 2px dashed #e2e8f0;
+    border-radius: 10px;
+    color: #64748b;
+    gap: 0.5rem;
+}
+
+.prediction-empty-chart-small {
+    padding: 2rem 1rem;
+}
+
+.prediction-empty-icon {
+    font-size: 2.5rem;
+    margin-bottom: 0.25rem;
+}
+
+.prediction-empty-chart strong {
+    font-size: 0.95rem;
+    color: #1e293b;
+}
+
+.prediction-empty-chart span {
+    font-size: 0.8125rem;
+    color: #94a3b8;
+    max-width: 350px;
+}
+
+.prediction-warning {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    padding: 0.75rem 1rem;
+    background-color: #fffbeb;
+    border: 1px solid #fef3c7;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    color: #92400e;
+}

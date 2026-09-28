@@ -1,0 +1,189 @@
+/* ==========================================
+   RIWAYAT PAGE MAIN STYLING
+   ========================================== */
+
+.history-page {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    padding: 2rem;
+}
+
+/* --- 1. FILTER & EXPORT CARD --- */
+.history-filter-card {
+    padding: 1.25rem 1.5rem;
+    background: #ffffff;
+    border-radius: 12px;
+    border: 1px solid #f1f5f9;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.history-filter-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.history-filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.form-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin: 0;
+}
+
+.form-input {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    background-color: #f8fafc;
+}
+
+.form-input:focus {
+    border-color: #3b82f6;
+    background-color: #ffffff;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+.history-export-icon {
+    font-size: 1.1rem;
+    line-height: 1;
+    font-weight: bold;
+}
+
+
+/* --- 2. GRAFIK KARTU --- */
+.history-chart-card,
+.history-table-card {
+    padding: 1.5rem;
+    background: #ffffff;
+    border-radius: 12px;
+    border: 1px solid #f1f5f9;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+}
+
+.history-card-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 0.2rem;
+}
+
+.history-card-description {
+    font-size: 0.8125rem;
+    color: #64748b;
+    margin-bottom: 1.25rem;
+}
+
+.history-empty-chart {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 3rem 1rem;
+    background-color: #f8fafc;
+    border: 2px dashed #e2e8f0;
+    border-radius: 10px;
+    color: #64748b;
+    gap: 0.4rem;
+}
+
+.history-empty-icon {
+    font-size: 2.5rem;
+    margin-bottom: 0.25rem;
+}
+
+.history-empty-chart strong {
+    font-size: 0.95rem;
+    color: #1e293b;
+}
+
+.history-empty-chart span {
+    font-size: 0.8125rem;
+    color: #94a3b8;
+    max-width: 350px;
+}
+
+
+/* --- 3. TABEL RIWAYAT --- */
+.history-table-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+}
+
+.history-data-count {
+    font-size: 0.8125rem;
+    color: #64748b;
+    background-color: #f1f5f9;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-weight: 500;
+}
+
+.table-wrapper {
+    overflow-x: auto;
+}
+
+.history-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    font-size: 0.875rem;
+}
+
+.history-table th {
+    padding: 0.75rem 1rem;
+    background-color: #f8fafc;
+    color: #475569;
+    font-weight: 600;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.history-table td {
+    padding: 0.875rem 1rem;
+    border-bottom: 1px solid #f1f5f9;
+    color: #334155;
+}
+
+/* Empty Table State */
+.history-empty-table {
+    text-align: center;
+    padding: 3rem 1rem !important;
+    color: #64748b;
+}
+
+.history-empty-table-icon {
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.history-empty-table strong {
+    display: block;
+    font-size: 0.95rem;
+    color: #1e293b;
+    margin-bottom: 0.25rem;
+}
+
+.history-empty-table span {
+    font-size: 0.8125rem;
+    color: #94a3b8;
+}
