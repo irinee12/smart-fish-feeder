@@ -39,7 +39,7 @@ Route::get('/jadwal', function () {
 |--------------------------------------------------------------------------
 */
 Route::get('/stok', function () {
-    return view('Stok');
+    return view('Stok'); // Ganti jadi huruf kecil 'stok'
 })->name('stok');
 
 
@@ -61,6 +61,8 @@ Route::get('/prediksi', function () {
 Route::get('/riwayat', [RiwayatController::class, 'index'])
     ->name('riwayat');
 
+Route::view('/mataikan', 'mataikan')
+    ->name('mataikan.index');
 
 /*
 |--------------------------------------------------------------------------
