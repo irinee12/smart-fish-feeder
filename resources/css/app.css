@@ -1,0 +1,177 @@
+/* =========================================================
+   SMART FISH FEEDER
+   APP.CSS
+   ========================================================= */
+
+
+/* =========================================================
+   GOOGLE FONT
+   ========================================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+
+/* =========================================================
+   TAILWIND
+   ========================================================= */
+
+@import 'tailwindcss';
+
+
+/* =========================================================
+   THEME
+   ========================================================= */
+
+@theme {
+
+    /* Font */
+    --font-heading: 'Plus Jakarta Sans', sans-serif;
+    --font-body: 'Inter', sans-serif;
+
+
+    /* Brand */
+    --color-navy: #0f2d4f;
+    --color-navy-dark: #0b2440;
+    --color-navy-light: #173d63;
+
+    --color-blue: #2563eb;
+    --color-blue-dark: #1d4ed8;
+
+    --color-sky-soft: #e0f2fe;
+
+
+    /* Status */
+    --color-green: #16a34a;
+    --color-green-soft: #dcfce7;
+
+    --color-amber: #d97706;
+    --color-amber-soft: #fef3c7;
+
+    --color-red: #dc2626;
+    --color-red-soft: #fee2e2;
+
+
+    /* Neutral */
+    --color-bg: #f0f5fb;
+    --color-surface: #ffffff;
+
+    --color-border: #d9e3ef;
+
+    --color-text: #0f2744;
+    --color-muted: #5f7a99;
+    --color-subtle: #8fa8c4;
+}
+
+
+/* =========================================================
+   GLOBAL RESET
+   ========================================================= */
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+
+html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+
+    scroll-behavior: smooth;
+
+    scrollbar-width: thin;
+    scrollbar-color: #94a3b8 transparent;
+}
+
+
+body {
+    min-width: 0;
+    min-height: 100vh;
+
+    margin: 0;
+
+    background: var(--color-bg);
+
+    color: var(--color-text);
+
+    font-family: var(--font-body);
+
+    font-size: 14px;
+
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+
+    overflow-x: hidden;
+}
+
+
+/* =========================================================
+   TYPOGRAPHY
+   ========================================================= */
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    font-family: var(--font-heading);
+}
+
+
+button,
+a,
+input,
+select,
+textarea {
+    font: inherit;
+}
+
+
+a {
+    color: inherit;
+}
+
+
+button {
+    cursor: pointer;
+}
+
+
+img,
+svg,
+canvas {
+    max-width: 100%;
+}
+
+
+/* =========================================================
+   COMMON
+   ========================================================= */
+
+.hidden {
+    display: none !important;
+}
+
+
+.text-muted {
+    color: var(--color-muted);
+}
+
+
+/* =========================================================
+   MOBILE SAFETY
+   ========================================================= */
+
+@media (max-width: 768px) {
+
+    body {
+        overscroll-behavior-x: none;
+    }
+
+}
