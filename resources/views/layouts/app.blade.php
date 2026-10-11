@@ -249,6 +249,23 @@
                     </a>
                 </li>
             </ul>
+
+            <div class="mt-auto pt-3 border-top">
+                @auth
+                    <form action="{{ route('logout') }}" method="POST">
+                        @csrf
+                        <button type="submit" class="nav-link w-100 border-0 bg-transparent text-start">
+                            <i class="bi bi-box-arrow-right"></i>
+                            <span>Logout</span>
+                        </button>
+                    </form>
+                @else
+                    <a href="{{ route('login') }}" class="nav-link">
+                        <i class="bi bi-box-arrow-in-right"></i>
+                        <span>Login Pengelola</span>
+                    </a>
+                @endauth
+            </div>
         </aside>
 
         <!-- ==========================================
@@ -287,6 +304,20 @@
             <i class="bi bi-arrow-counterclockwise"></i>
             <span>Riwayat</span>
         </a>
+        @auth
+            <form action="{{ route('logout') }}" method="POST" class="bottom-nav-item">
+                @csrf
+                <button type="submit" class="border-0 bg-transparent text-reset d-flex flex-column align-items-center justify-content-center w-100 h-100">
+                    <i class="bi bi-box-arrow-right"></i>
+                    <span>Logout</span>
+                </button>
+            </form>
+        @else
+            <a href="{{ route('login') }}" class="bottom-nav-item">
+                <i class="bi bi-box-arrow-in-right"></i>
+                <span>Login</span>
+            </a>
+        @endauth
     </div>
 </body>
 </html>

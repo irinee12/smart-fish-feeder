@@ -26,14 +26,26 @@
     <div class="px-4">
 
         {{-- ============================================= --}}
-        {{-- TOMBOL TAMBAH JADWAL (TERPISAH DI LUAR HEADER) --}}
+        {{-- TOMBOL TAMBAH JADWAL (HANYA TAMPIL JIKA LOGIN) --}}
         {{-- ============================================= --}}
+        @auth
         <div class="d-flex justify-content-end mb-3">
             <button type="button" class="btn btn-primary d-flex align-items-center gap-2 shadow-sm px-3 py-2 rounded-3" onclick="bukaPopupTambahJadwal()">
                 <i class="bi bi-plus-lg fs-5"></i>
                 <span class="fw-semibold">Tambah Jadwal</span>
             </button>
         </div>
+        @endauth
+
+        {{-- ============================= --}}
+        {{-- NOTIFIKASI SUKSES --}}
+        {{-- ============================= --}}
+        @if(session('success'))
+            <div class="alert alert-success alert-dismissible fade show rounded-3 shadow-sm" role="alert">
+                <i class="bi bi-check-circle-fill me-2"></i> {{ session('success') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        @endif
 
         {{-- ============================= --}}
         {{-- KARTU DAFTAR JADWAL --}}
@@ -52,22 +64,49 @@
                             <th class="py-3 px-4 fw-semibold">Sesi</th>
                             <th class="py-3 px-4 fw-semibold">Porsi</th>
                             <th class="py-3 px-4 fw-semibold">Status</th>
+                            {{-- HEADER AKSI HANYA TAMPIL JIKA LOGIN --}}
+                            @auth
                             <th class="py-3 px-4 fw-semibold text-end">Aksi</th>
+                            @endauth
                         </tr>
                     </thead>
                     <tbody>
-                        {{-- KONDISI JIKA DATABASE BELUM ADA / KOSONG --}}
-                        <tr>
-                            <td colspan="5" class="py-5 text-center text-muted">
-                                <div class="d-flex flex-column align-items-center justify-content-center py-4">
-                                    <div class="bg-light text-secondary rounded-circle d-flex align-items-center justify-content-center mb-3" style="width: 64px; height: 64px;">
-                                        <i class="bi bi-clock-history fs-2"></i>
+                        @forelse($jadwals as $jadwal)
+                            <tr>
+                                <td class="py-3 px-4 fw-semibold">{{ \Carbon\Carbon::parse($jadwal->waktu)->format('H:i') }}</td>
+                                <td class="py-3 px-4">{{ $jadwal->sesi }}</td>
+                                <td class="py-3 px-4">{{ $jadwal->porsi }} g</td>
+                                <td class="py-3 px-4">
+                                    <span class="badge bg-success bg-opacity-10 text-success rounded-pill px-3">Aktif</span>
+                                </td>
+                                {{-- TOMBOL HAPUS HANYA TAMPIL JIKA LOGIN --}}
+                                @auth
+                                <td class="py-3 px-4 text-end">
+                                    <form action="{{ route('jadwal.destroy', $jadwal->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Apakah Anda yakin ingin menghapus jadwal pakan ini?');">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn btn-sm btn-outline-danger rounded-3" title="Hapus Jadwal">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                                @endauth
+                            </tr>
+                        @empty
+                            {{-- KONDISI JIKA DATABASE BELUM ADA / KOSONG --}}
+                            <tr>
+                                {{-- COLSPAN MENYESUAIKAN APAKAH USER LOGIN (5 KOLOM) ATAU TIDAK (4 KOLOM) --}}
+                                <td colspan="{{ auth()->check() ? 5 : 4 }}" class="py-5 text-center text-muted">
+                                    <div class="d-flex flex-column align-items-center justify-content-center py-4">
+                                        <div class="bg-light text-secondary rounded-circle d-flex align-items-center justify-content-center mb-3" style="width: 64px; height: 64px;">
+                                            <i class="bi bi-clock-history fs-2"></i>
+                                        </div>
+                                        <h6 class="fw-bold text-dark mb-1">Belum ada jadwal pakan</h6>
+                                        <p class="text-muted small mb-0">Data jadwal akan tampil otomatis setelah ditambahkan atau database terhubung.</p>
                                     </div>
-                                    <h6 class="fw-bold text-dark mb-1">Belum ada jadwal pakan</h6>
-                                    <p class="text-muted small mb-0">Data jadwal akan tampil otomatis setelah ditambahkan atau database terhubung.</p>
-                                </div>
-                            </td>
-                        </tr>
+                                </td>
+                            </tr>
+                        @endforelse
                     </tbody>
                 </table>
             </div>
@@ -83,8 +122,9 @@
 </div>
 
 {{-- ================================================= --}}
-{{-- POPUP / MODAL TAMBAH JADWAL --}}
+{{-- POPUP / MODAL TAMBAH JADWAL (HANYA RENDER JIKA LOGIN) --}}
 {{-- ================================================= --}}
+@auth
 <div class="popup-overlay" id="popupTambahJadwal">
     <div class="popup-card bg-white rounded-4 shadow-lg overflow-hidden" style="width: 100%; max-width: 480px;">
         
@@ -97,38 +137,45 @@
             <button type="button" class="btn-close shadow-none" onclick="tutupPopupTambahJadwal()" aria-label="Tutup"></button>
         </div>
 
-        {{-- FORM POPUP --}}
-        <div class="p-4 d-flex flex-column gap-3">
-            <div class="mb-1">
-                <label for="waktu" class="form-label fw-semibold small text-secondary">Waktu</label>
-                <input type="time" id="waktu" class="form-control rounded-3 py-2">
+        {{-- BUNGKUS DENGAN TAG FORM --}}
+        <form action="{{ route('jadwal.store') }}" method="POST">
+            @csrf
+            
+            {{-- FORM POPUP --}}
+            <div class="p-4 d-flex flex-column gap-3">
+                <div class="mb-1">
+                    <label for="waktu" class="form-label fw-semibold small text-secondary">Waktu</label>
+                    <input type="time" id="waktu" name="waktu" class="form-control rounded-3 py-2" required>
+                </div>
+
+                <div class="mb-1">
+                    <label for="sesi" class="form-label fw-semibold small text-secondary">Sesi</label>
+                    <select id="sesi" name="sesi" class="form-select rounded-3 py-2" required>
+                        <option value="Pagi">Pagi</option>
+                        <option value="Siang">Siang</option>
+                        <option value="Sore">Sore</option>
+                        <option value="Malam">Malam</option>
+                    </select>
+                </div>
+
+                <div class="mb-1">
+                    <label for="porsi" class="form-label fw-semibold small text-secondary">Porsi (gram)</label>
+                    <input type="number" id="porsi" name="porsi" class="form-control rounded-3 py-2" placeholder="Contoh: 500" min="50" max="2000" required>
+                </div>
             </div>
 
-            <div class="mb-1">
-                <label for="sesi" class="form-label fw-semibold small text-secondary">Sesi</label>
-                <select id="sesi" class="form-select rounded-3 py-2">
-                    <option value="Pagi">Pagi</option>
-                    <option value="Siang">Siang</option>
-                    <option value="Sore">Sore</option>
-                </select>
+            {{-- TOMBOL AKSI POPUP --}}
+            <div class="p-3 px-4 bg-light border-top d-flex justify-content-end gap-2">
+                <button type="button" class="btn btn-outline-secondary px-4 rounded-3" onclick="tutupPopupTambahJadwal()">Batal</button>
+                <button type="submit" class="btn btn-primary px-4 rounded-3">
+                    <i class="bi bi-plus-lg me-1"></i> Simpan Jadwal
+                </button>
             </div>
-
-            <div class="mb-1">
-                <label for="porsi" class="form-label fw-semibold small text-secondary">Porsi (gram)</label>
-                <input type="number" id="porsi" class="form-control rounded-3 py-2" placeholder="Contoh: 500" min="50" max="2000">
-            </div>
-        </div>
-
-        {{-- TOMBOL AKSI POPUP --}}
-        <div class="p-3 px-4 bg-light border-top d-flex justify-content-end gap-2">
-            <button type="button" class="btn btn-outline-secondary px-4 rounded-3" onclick="tutupPopupTambahJadwal()">Batal</button>
-            <button type="button" class="btn btn-primary px-4 rounded-3" onclick="simpanJadwal()">
-                <i class="bi bi-plus-lg me-1"></i> Simpan Jadwal
-            </button>
-        </div>
+        </form>
 
     </div>
 </div>
+@endauth
 
 {{-- ================================================= --}}
 {{-- JAVASCRIPT POPUP & INTERAKSI --}}
@@ -164,6 +211,7 @@
     }
 </style>
 
+@auth
 <script>
     function bukaPopupTambahJadwal() {
         document.getElementById('popupTambahJadwal').classList.add('show');
@@ -171,11 +219,6 @@
 
     function tutupPopupTambahJadwal() {
         document.getElementById('popupTambahJadwal').classList.remove('show');
-    }
-
-    function simpanJadwal() {
-        // Logika simpan sementara
-        tutupPopupTambahJadwal();
     }
 
     // Tutup jika klik di luar kotak popup
@@ -192,4 +235,5 @@
         }
     });
 </script>
+@endauth
 @endsection
