@@ -4,6 +4,7 @@ use App\Http\Controllers\RiwayatController;
 use App\Http\Controllers\AuthController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\JadwalController;
+use App\Http\Controllers\Penjaga2Controller;
 
 /*
 |--------------------------------------------------------------------------
@@ -25,7 +26,10 @@ Route::middleware('auth')->group(function () {
     Route::delete('/jadwal/{id}', [JadwalController::class, 'destroy'])->name('jadwal.destroy');
 });
 
-
+Route::middleware(['auth'])->group(function () {
+    Route::get('/penjaga2', [Penjaga2Controller::class, 'index'])->name('penjaga2.dashboard');
+    Route::get('/penjaga2/deteksi-mata', [Penjaga2Controller::class, 'deteksiMata'])->name('penjaga2.deteksi');
+});
 /*
 |--------------------------------------------------------------------------
 | Halaman Sistem (Publik / Read-Only)
