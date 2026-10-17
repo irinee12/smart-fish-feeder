@@ -11,53 +11,35 @@ use App\Http\Controllers\Penjaga2Controller;
 | Autentikasi (Login & Logout)
 |--------------------------------------------------------------------------
 */
-// Hanya bisa diakses oleh orang yang BELUM login
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
     Route::post('/login', [AuthController::class, 'login']);
 });
 
-// Hanya bisa diakses oleh orang yang SUDAH login (Penjaga/Admin)
 Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
-    // Aksi menambah dan menghapus data
+    // Aksi menambah dan menghapus data jadwal
     Route::post('/jadwal', [JadwalController::class, 'store'])->name('jadwal.store');
     Route::delete('/jadwal/{id}', [JadwalController::class, 'destroy'])->name('jadwal.destroy');
 });
 
-Route::middleware(['auth'])->group(function () {
-    Route::get('/penjaga2', [Penjaga2Controller::class, 'index'])->name('penjaga2.dashboard');
-    Route::get('/penjaga2/deteksi-mata', [Penjaga2Controller::class, 'deteksiMata'])->name('penjaga2.deteksi');
-});
 /*
 |--------------------------------------------------------------------------
-| Halaman Sistem (Publik / Read-Only)
+| Halaman Utama & Fitur Deteksi Mata Ikan (Langsung Akses)
 |--------------------------------------------------------------------------
-| Semua pengunjung bisa mengakses rute ini untuk melihat data (Tampilan Front-end).
-| Tombol aksi disembunyikan dari view menggunakan @auth ... @endauth.
 */
+// Halaman utama langsung ke Deteksi Mata Ikan
+Route::get('/', [Penjaga2Controller::class, 'deteksiMata'])->name('deteksi.index');
+Route::post('/deteksi-mata', [Penjaga2Controller::class, 'processDeteksi'])->name('deteksi.process');
 
-// Dashboard
-Route::get('/', function () {
-    return view('Dashboard');
-})->name('dashboard');
-
-// Jadwal Pakan
+// Halaman Sistem Lainnya (Publik / Read-Only)
 Route::get('/jadwal', [JadwalController::class, 'index'])->name('jadwal');
-
-// Stok Pakan
 Route::get('/stok', function () {
     return view('Stok');
 })->name('stok');
-
-// Prediksi Refill
 Route::get('/prediksi', function () {
     return view('Prediksi');
 })->name('prediksi');
-
-// Riwayat Pemberian Pakan
 Route::get('/riwayat', [RiwayatController::class, 'index'])->name('riwayat');
-
-// Export Riwayat ke PDF
 Route::get('/riwayat/export-pdf', [RiwayatController::class, 'exportPdf'])->name('riwayat.export.pdf');
