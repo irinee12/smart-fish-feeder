@@ -78,11 +78,17 @@
             margin-bottom: 1.5rem;
         }
 
-        .sidebar-brand i {
-            font-size: 1.4rem;
-            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+        /* Logo gambar (LOGO1.jpeg) */
+        .sidebar-brand-logo {
+            width: 44px;
+            height: 44px;
+            flex-shrink: 0;
+            border-radius: 50%;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 2px 6px rgba(15, 23, 42, 0.1);
+            object-fit: contain;
+            display: block;
         }
 
         /* Kategori Menu */
@@ -209,7 +215,11 @@
             
             <!-- 1. Logo / Judul Aplikasi di Atas -->
             <a href="{{ url('/') }}" class="sidebar-brand">
-                <i class="bi bi-droplet-fill"></i>
+                <img
+                    src="{{ asset('aset/LOGO1.jpeg') }}"
+                    alt="Logo Smart Fish Feeder"
+                    class="sidebar-brand-logo"
+                >
                 <span>Smart Fish Feeder</span>
             </a>
             

@@ -1,4 +1,3 @@
-
 @extends('layouts.guest')
 
 @section('title', 'Login - Smart Fish Feeder')
@@ -13,7 +12,7 @@
 
                 <div class="banner-icon-wrapper">
                     <img
-                        src="{{ asset('aset/logo.png') }}"
+                        src="{{ asset('aset/LOGO1.jpeg') }}"
                         alt="Logo Smart Fish Feeder"
                         class="login-logo"
                     >
@@ -216,16 +215,18 @@
     }
 
     .banner-icon-wrapper {
-        width: 60px;
-        height: 60px;
-        background: rgba(255, 255, 255, 0.15);
+        width: 80px;
+        height: 80px;
+        background: #ffffff;
         display: flex;
         align-items: center;
         justify-content: center;
-        border-radius: 12px;
-        margin-bottom: 1.5rem;
-        padding: 8px;
+        border-radius: 50%;
+        margin-bottom: 1.25rem;
+        padding: 0;
         overflow: hidden;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        border: 2px solid rgba(255, 255, 255, 0.35);
     }
 
     .login-logo {
@@ -483,6 +484,12 @@
 
         .login-banner {
             padding: 1.5rem;
+        }
+
+        .banner-icon-wrapper {
+            width: 68px;
+            height: 68px;
+            margin-bottom: 1rem;
         }
 
         .login-banner p {
