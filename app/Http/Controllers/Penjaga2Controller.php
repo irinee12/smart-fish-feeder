@@ -8,42 +8,13 @@ use Illuminate\Support\Str;
 
 class Penjaga2Controller extends Controller
 {
-    // Cek apakah API Python sudah hidup
-    private function apiHidup(): bool
+    private function getApiUrl(): string
     {
-        try {
-            return Http::timeout(2)->get(config('services.fish_api.url') . '/')->successful();
-        } catch (\Exception $e) {
-            return false;
-        }
-    }
-
-    // Nyalakan API Python di latar belakang kalau belum hidup
-    private function nyalakanApi(): void
-    {
-        if ($this->apiHidup()) {
-            return;
-        }
-        pclose(popen('start "API Python" /MIN "D:\\fish_api\\jalankan_api.bat"', 'r'));
-    }
-
-    // Tunggu sampai API siap (maksimal 60 detik)
-    private function tungguApi(): bool
-    {
-        for ($i = 0; $i < 60; $i++) {
-            if ($this->apiHidup()) {
-                return true;
-            }
-            sleep(1);
-        }
-        return false;
+        return config('services.fish_api.url', 'http://127.0.0.1:5000');
     }
 
     public function deteksiMata()
     {
-        // Mulai menyalakan API begitu halaman dibuka, supaya model sudah siap saat Deteksi diklik
-        $this->nyalakanApi();
-
         return view('penjaga2.deteksi_mata');
     }
 
@@ -65,18 +36,13 @@ class Penjaga2Controller extends Controller
         $ukuran = number_format($file->getSize() / 1024 / 1024, 2) . ' MB';
         $isi    = file_get_contents($file->getRealPath());
 
-        // Pastikan API hidup (kalau belum, nyalakan dan tunggu)
-        $this->nyalakanApi();
-        if (! $this->tungguApi()) {
-            return back()->withErrors(['foto_mata' => 'Server deteksi belum siap. Tunggu sebentar lalu coba lagi.']);
-        }
-
         try {
+            // Tembak langsung ke API Python FastAPI
             $res = Http::timeout(60)
                 ->attach('file', $isi, $nama)
-                ->post(config('services.fish_api.url') . '/predict');
+                ->post($this->getApiUrl() . '/predict');
         } catch (\Exception $e) {
-            return back()->withErrors(['foto_mata' => 'Server deteksi tidak merespons. Coba lagi.']);
+            return back()->withErrors(['foto_mata' => 'Server deteksi tidak merespons. Pastikan Uvicorn/FastAPI sudah berjalan di terminal.']);
         }
 
         if ($res->failed()) {
@@ -90,9 +56,9 @@ class Penjaga2Controller extends Controller
 
         return view('penjaga2.deteksi_mata', [
             'hasil' => [
-                'kategori_utama'     => $data['mata_segar'] >= $data['tidak_segar'] ? 'segar' : 'tidak segar',
-                'persen_segar'       => $data['mata_segar'],
-                'persen_tidak_segar' => $data['tidak_segar'],
+                'kategori_utama'     => ($data['mata_segar'] ?? 0) >= ($data['tidak_segar'] ?? 0) ? 'segar' : 'tidak segar',
+                'persen_segar'       => $data['mata_segar'] ?? 0,
+                'persen_tidak_segar' => $data['tidak_segar'] ?? 0,
             ],
             'gambar_path' => 'uploads/deteksi/' . $namaSimpan,
             'nama_file'   => $nama,

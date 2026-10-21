@@ -13,10 +13,11 @@ return [
     | a conventional file to locate the various service credentials.
     |
     */
+
     'fish_api' => [
-        'url' => env('FISH_API_URL'),
+        'url' => env('FISH_API_URL', 'http://127.0.0.1:5000'),
     ],
-    
+
     'postmark' => [
         'key' => env('POSTMARK_API_KEY'),
     ],
