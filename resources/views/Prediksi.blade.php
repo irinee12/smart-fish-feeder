@@ -1,306 +1,458 @@
+
 @extends('layouts.app')
 
 @section('title', 'Prediksi Refill - Smart Fish Feeder')
 
 @section('content')
-<div class="container-fluid px-0" style="background-color: #f8f9fa; min-height: 100vh;">
 
-    {{-- =====================================================
-        HEADER FULL WARNA (RAMPING & MENTOK TANPA LENGKUNGAN)
-    ===================================================== --}}
-    <div class="py-3 px-4 mb-4 text-white shadow-sm d-flex align-items-center" style="background: linear-gradient(135deg, #2563eb, #1d4ed8); width: 100%;">
-        <div class="d-flex align-items-center gap-3">
-            <div class="p-2 bg-white bg-opacity-25 rounded-3">
-                <i class="bi bi-graph-up-arrow fs-5 text-white"></i>
-            </div>
-            <div>
-                <h4 class="fw-bold mb-0">Prediksi Refill</h4>
-                <p class="text-white text-opacity-75 mb-0 small">
-                    Analisis dan estimasi waktu pengisian ulang pakan ikan berdasarkan konsumsi harian.
-                </p>
-            </div>
-        </div>
+<style>
+    .prediction-container {
+        padding: 20px;
+    }
+
+    .prediction-header {
+        margin-bottom: 25px;
+    }
+
+    .prediction-header h2 {
+        font-size: 25px;
+        font-weight: 700;
+        color: #1e293b;
+    }
+
+    .prediction-header p {
+        color: #64748b;
+        margin-bottom: 0;
+    }
+
+    .prediction-status-card {
+        background: #eff6ff;
+        border: 1px solid #bfdbfe;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 25px;
+    }
+
+    .prediction-status-card h5 {
+        font-weight: 700;
+        color: #1e40af;
+        margin-bottom: 8px;
+    }
+
+    .prediction-status-card p {
+        color: #475569;
+        margin-bottom: 0;
+    }
+
+    .prediction-metrics-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+        margin-bottom: 25px;
+    }
+
+    .prediction-metric-card {
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 22px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+    }
+
+    .prediction-metric-card h6 {
+        color: #64748b;
+        font-size: 14px;
+        margin-bottom: 12px;
+    }
+
+    .prediction-metric-card h3 {
+        font-size: 25px;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 8px;
+    }
+
+    .prediction-metric-card p {
+        font-size: 12px;
+        color: #94a3b8;
+        margin-bottom: 0;
+    }
+
+    .prediction-section-card {
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 22px;
+        margin-bottom: 25px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+    }
+
+    .prediction-section-card h5 {
+        font-size: 17px;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 20px;
+    }
+
+    .prediction-chart-container {
+        position: relative;
+        width: 100%;
+        height: 320px;
+    }
+
+    .prediction-info {
+        color: #64748b;
+        font-size: 13px;
+        margin-top: 15px;
+    }
+
+    @media (max-width: 768px) {
+        .prediction-metrics-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .prediction-container {
+            padding: 12px;
+        }
+    }
+</style>
+
+<div class="prediction-container">
+
+    {{-- HEADER --}}
+    <div class="prediction-header">
+        <h2>Prediksi Refill</h2>
+        <p>
+            Monitoring konsumsi pakan dan estimasi waktu pengisian ulang stok.
+        </p>
     </div>
 
-    {{-- BUNGKUS KONTEN DI BAWAHNYA DIBERI PADDING SUPAYA TIDAK IKUT MENEMPEL KE PINGGIR --}}
-    <div class="px-4 pb-4">
+    {{-- STATUS PREDIKSI --}}
+    <div class="prediction-status-card">
+        <h5>
+            Status Prediksi: {{ $statusPrediksi }}
+        </h5>
 
-        {{-- =========================================================
-            CSS KHUSUS HALAMAN PREDIKSI REFILL (LEBIH RINGKAS & BERSIH)
-        ========================================================= --}}
-        <style>
-            .prediction-page {
-                display: flex;
-                flex-direction: column;
-                gap: 1.25rem;
-            }
+        <p>{{ $pesanPrediksi }}</p>
+    </div>
 
-            /* --- Status Alert Minimalis (Pengganti Banner Besar) --- */
-            .prediction-status-card {
-                background: #ffffff;
-                border: 1px solid #e2e8f0;
-                border-left: 4px solid #3b82f6;
-                padding: 1rem 1.25rem;
-                border-radius: 10px;
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-                gap: 1rem;
-                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
-            }
+    {{-- RINGKASAN PREDIKSI --}}
+    <div class="prediction-metrics-grid">
 
-            .prediction-status-content {
-                display: flex;
-                align-items: center;
-                gap: 0.85rem;
-            }
+        <div class="prediction-metric-card">
+            <h6>Rata-rata Pakan / Hari</h6>
 
-            .prediction-status-icon {
-                font-size: 1.25rem;
-                color: #3b82f6;
-                background: #eff6ff;
-                padding: 0.5rem;
-                border-radius: 8px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-            }
+            <h3>
+                @if ($sma !== null)
+                    {{ number_format($sma / 1000, 2, ',', '.') }} kg
+                @else
+                    —
+                @endif
+            </h3>
 
-            .prediction-status-text h6 {
-                font-size: 0.95rem;
-                font-weight: 600;
-                color: #1e293b;
-                margin-bottom: 0.1rem;
-            }
+            <p>Metode Simple Moving Average 7 hari</p>
+        </div>
 
-            .prediction-status-text p {
-                font-size: 0.8rem;
-                color: #64748b;
-                margin-bottom: 0;
-            }
+        <div class="prediction-metric-card">
+            <h6>Hari Tersisa</h6>
 
-            /* --- Summary Metrics Grid --- */
-            .prediction-metrics-grid {
-                display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-                gap: 1.25rem;
-            }
+            <h3>
+                @if ($prediksiHari !== null)
+                    {{ number_format($prediksiHari, 1, ',', '.') }} hari
+                @else
+                    —
+                @endif
+            </h3>
 
-            .prediction-metric-card {
-                padding: 1.25rem 1.5rem;
-                display: flex;
-                flex-direction: column;
-                gap: 0.5rem;
-                border-radius: 12px;
-                background: #ffffff;
-                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02), 0 1px 6px rgba(0, 0, 0, 0.04);
-                border: 1px solid #f1f5f9;
-                transition: transform 0.2s ease;
-            }
+            <p>Estimasi menuju batas minimum stok</p>
+        </div>
 
-            .prediction-metric-card:hover {
-                transform: translateY(-2px);
-            }
+        <div class="prediction-metric-card">
+            <h6>Rekomendasi Refill</h6>
 
-            .prediction-metric-header {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                font-size: 0.875rem;
-                font-weight: 500;
-                color: #64748b;
-            }
+            <h3>{{ $rekomendasiRefill }}</h3>
 
-            .prediction-icon {
-                width: 36px;
-                height: 36px;
-                border-radius: 8px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                font-size: 1rem;
-            }
+            <p>
+                Estimasi tanggal:
+                {{ $estimasiTanggal ?? 'Belum tersedia' }}
+            </p>
+        </div>
 
-            .prediction-icon-blue { background-color: #eff6ff; color: #3b82f6; }
-            .prediction-icon-yellow { background-color: #fefce8; color: #eab308; }
-            .prediction-icon-green { background-color: #f0fdf4; color: #22c55e; }
+    </div>
 
-            .prediction-metric-value {
-                font-size: 1.75rem;
-                font-weight: 700;
-                color: #0f172a;
-                display: flex;
-                align-items: baseline;
-                gap: 0.35rem;
-            }
+    {{-- INFORMASI STOK --}}
+    <div class="prediction-section-card">
 
-            .prediction-metric-value span {
-                font-size: 0.875rem;
-                font-weight: 500;
-                color: #64748b;
-            }
+        <h5>Informasi Stok Pakan</h5>
 
-            .prediction-metric-sub {
-                font-size: 0.75rem;
-                color: #94a3b8;
-            }
+        <div class="row">
 
-            /* --- Chart & Content Cards --- */
-            .prediction-chart-card {
-                padding: 1.5rem;
-                background: #ffffff;
-                border-radius: 12px;
-                border: 1px solid #f1f5f9;
-                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
-            }
+            <div class="col-md-4 mb-3">
+                <small class="text-muted">Stok Saat Ini</small>
 
-            .prediction-chart-title {
-                font-size: 1rem;
-                font-weight: 600;
-                color: #1e293b;
-                margin-bottom: 0.25rem;
-            }
-
-            .prediction-chart-description {
-                font-size: 0.8125rem;
-                color: #64748b;
-                margin-bottom: 1.25rem;
-            }
-
-            .prediction-empty-chart {
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                justify-content: center;
-                text-align: center;
-                padding: 2.5rem 1rem;
-                background-color: #f8fafc;
-                border: 2px dashed #e2e8f0;
-                border-radius: 10px;
-                color: #64748b;
-                gap: 0.4rem;
-            }
-
-            .prediction-empty-chart-small {
-                padding: 1.75rem 1rem;
-            }
-
-            .prediction-empty-icon {
-                font-size: 2.2rem;
-                margin-bottom: 0.2rem;
-            }
-
-            .prediction-empty-chart strong {
-                font-size: 0.9rem;
-                color: #1e293b;
-            }
-
-            .prediction-empty-chart span {
-                font-size: 0.78rem;
-                color: #94a3b8;
-                max-width: 350px;
-            }
-
-            .prediction-warning {
-                display: flex;
-                align-items: center;
-                gap: 0.5rem;
-                margin-top: 1rem;
-                padding: 0.65rem 0.85rem;
-                background-color: #fffbeb;
-                border: 1px solid #fef3c7;
-                border-radius: 8px;
-                font-size: 0.78rem;
-                color: #92400e;
-            }
-        </style>
-
-        <div class="prediction-page">
-
-            {{-- =====================================================
-                STATUS ALERT MINIMALIS (PENGGANTI BANNER BESAR)
-            ===================================================== --}}
-            <div class="prediction-status-card">
-                <div class="prediction-status-content">
-                    <div class="prediction-status-icon">
-                        <i class="bi bi-info-circle"></i>
-                    </div>
-                    <div class="prediction-status-text">
-                        <h6>Status Prediksi: Belum Cukup Data</h6>
-                        <p>Sistem akan menghitung waktu refill otomatis setelah data stok dan riwayat penggunaan harian tersedia.</p>
-                    </div>
-                </div>
+                <h4 class="fw-bold">
+                    {{ $stokSaatIni !== null
+                        ? number_format($stokSaatIni, 0, ',', '.') . ' gram'
+                        : 'Belum tersedia' }}
+                </h4>
             </div>
 
-            {{-- =====================================================
-                SUMMARY METRICS
-            ===================================================== --}}
-            <div class="prediction-metrics-grid">
-                <div class="card prediction-metric-card">
-                    <div class="prediction-metric-header">
-                        <span>Rata-rata Pakan / Hari</span>
-                        <div class="prediction-icon prediction-icon-blue">📊</div>
-                    </div>
-                    <div class="prediction-metric-value">— <span>kg</span></div>
-                    <div class="prediction-metric-sub">Belum ada data penggunaan</div>
-                </div>
+            <div class="col-md-4 mb-3">
+                <small class="text-muted">Batas Minimum</small>
 
-                <div class="card prediction-metric-card">
-                    <div class="prediction-metric-header">
-                        <span>Hari Tersisa</span>
-                        <div class="prediction-icon prediction-icon-yellow">🕒</div>
-                    </div>
-                    <div class="prediction-metric-value">— <span>hari</span></div>
-                    <div class="prediction-metric-sub">Belum dapat dihitung</div>
-                </div>
-
-                <div class="card prediction-metric-card">
-                    <div class="prediction-metric-header">
-                        <span>Rekomendasi Refill</span>
-                        <div class="prediction-icon prediction-icon-green">📈</div>
-                    </div>
-                    <div class="prediction-metric-value">—</div>
-                    <div class="prediction-metric-sub">Menunggu data penggunaan</div>
-                </div>
+                <h4 class="fw-bold">
+                    {{ $batasMinimum !== null
+                        ? number_format($batasMinimum, 0, ',', '.') . ' gram'
+                        : 'Belum tersedia' }}
+                </h4>
             </div>
 
-            {{-- =====================================================
-                GRAFIK PROYEKSI STOK
-            ===================================================== --}}
-            <div class="card prediction-chart-card">
-                <div class="prediction-chart-title">Grafik Proyeksi Stok Pakan</div>
-                <div class="prediction-chart-description">Histori dan prediksi stok pakan akan ditampilkan setelah data penggunaan tersedia.</div>
+            <div class="col-md-4 mb-3">
+                <small class="text-muted">Total Konsumsi 7 Hari</small>
 
-                <div class="prediction-empty-chart">
-                    <div class="prediction-empty-icon">📈</div>
-                    <strong>Belum ada data proyeksi</strong>
-                    <span>Grafik akan muncul setelah sistem memiliki data stok dan riwayat penggunaan pakan.</span>
-                </div>
-
-                <div class="prediction-warning">
-                    <span>⚠️</span>
-                    <span>Prediksi merupakan estimasi berdasarkan pola penggunaan pakan yang tercatat pada sistem. Hasil aktual dapat berbeda.</span>
-                </div>
-            </div>
-
-            {{-- =====================================================
-                RIWAYAT PENGGUNAAN PAKAN
-            ===================================================== --}}
-            <div class="card prediction-chart-card">
-                <div class="chart-title-wrapper mb-2">
-                    <div class="prediction-chart-title">Riwayat Penggunaan Pakan</div>
-                    <div class="prediction-chart-description">Konsumsi pakan harian akan digunakan sebagai dasar perhitungan prediksi refill.</div>
-                </div>
-
-                <div class="prediction-empty-chart prediction-empty-chart-small">
-                    <div class="prediction-empty-icon">📊</div>
-                    <strong>Belum ada data penggunaan</strong>
-                    <span>Data konsumsi pakan akan tampil setelah pemberian pakan tercatat di sistem.</span>
-                </div>
+                <h4 class="fw-bold">
+                    {{ number_format($totalKonsumsi, 0, ',', '.') }} gram
+                </h4>
             </div>
 
         </div>
 
+        @if ($monitoring)
+            <small class="text-muted">
+                Pembacaan stok terakhir:
+                {{ $monitoring->waktu_pembacaan
+                    ? \Carbon\Carbon::parse($monitoring->waktu_pembacaan)->format('d-m-Y H:i:s')
+                    : 'Tidak tersedia' }}
+            </small>
+        @endif
+
     </div>
+
+    {{-- GRAFIK PROYEKSI STOK --}}
+    <div class="prediction-section-card">
+
+        <h5>Grafik Prediksi Stok Pakan</h5>
+
+        @if ($stokSaatIni !== null)
+
+            <div class="prediction-chart-container">
+                <canvas id="grafikPrediksiStok"></canvas>
+            </div>
+
+            <p class="prediction-info">
+                Grafik menampilkan proyeksi stok selama 7 hari ke depan
+                berdasarkan rata-rata konsumsi pakan.
+            </p>
+
+        @else
+
+            <div class="text-center text-muted py-5">
+                <p>Belum ada data stok untuk ditampilkan.</p>
+            </div>
+
+        @endif
+
+    </div>
+
+    {{-- RIWAYAT KONSUMSI PAKAN --}}
+    <div class="prediction-section-card">
+
+        <h5>Riwayat Penggunaan Pakan (7 Hari Terakhir)</h5>
+
+        <div class="table-responsive">
+
+            <table class="table table-hover align-middle">
+
+                <thead class="table-light">
+                    <tr>
+                        <th>No</th>
+                        <th>Tanggal</th>
+                        <th>Konsumsi Pakan</th>
+                        <th>Status Data</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                    @forelse ($dataKonsumsi as $index => $data)
+
+                        <tr>
+                            <td>{{ $index + 1 }}</td>
+
+                            <td>{{ $data['tanggal'] }}</td>
+
+                            <td>
+                                {{ number_format($data['konsumsi'], 0, ',', '.') }}
+                                gram
+                            </td>
+
+                            <td>
+                                @if ($data['ada_data'])
+                                    <span class="badge bg-success">
+                                        Tercatat
+                                    </span>
+                                @else
+                                    <span class="badge bg-warning text-dark">
+                                        Belum ada data
+                                    </span>
+                                @endif
+                            </td>
+                        </tr>
+
+                    @empty
+
+                        <tr>
+                            <td colspan="4" class="text-center">
+                                Belum ada data penggunaan pakan.
+                            </td>
+                        </tr>
+
+                    @endforelse
+
+                </tbody>
+
+                <tfoot class="table-light">
+
+                    <tr>
+                        <th colspan="2">Total Konsumsi</th>
+
+                        <th colspan="2">
+                            {{ number_format($totalKonsumsi, 0, ',', '.') }}
+                            gram
+                        </th>
+                    </tr>
+
+                </tfoot>
+
+            </table>
+
+        </div>
+
+        <div class="prediction-info">
+            Data konsumsi yang digunakan merupakan data pakan aktual
+            dengan status berhasil.
+            <br>
+            Hari tercatat: {{ $jumlahHariTercatat }} dari 7 hari.
+        </div>
+
+    </div>
+
 </div>
+
+{{-- CHART JS --}}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+    const canvas = document.getElementById('grafikPrediksiStok');
+
+    if (!canvas) {
+        return;
+    }
+
+    const labels = @json($grafikLabels);
+    const dataStok = @json($grafikStok);
+    const batasMinimum = Number(@json($batasMinimum ?? 0));
+
+    new Chart(canvas, {
+
+        type: 'line',
+
+        data: {
+            labels: labels,
+
+            datasets: [
+
+                {
+                    label: 'Proyeksi Stok (gram)',
+
+                    data: dataStok,
+
+                    borderColor: '#2563eb',
+
+                    backgroundColor: 'rgba(37, 99, 235, 0.10)',
+
+                    fill: true,
+
+                    tension: 0.3,
+
+                    pointRadius: 4,
+
+                    pointHoverRadius: 6
+                },
+
+                {
+                    label: 'Batas Minimum (gram)',
+
+                    data: labels.map(() => batasMinimum),
+
+                    borderColor: '#ef4444',
+
+                    borderDash: [6, 5],
+
+                    pointRadius: 0,
+
+                    fill: false
+                }
+
+            ]
+        },
+
+        options: {
+
+            responsive: true,
+
+            maintainAspectRatio: false,
+
+            interaction: {
+                intersect: false,
+                mode: 'index'
+            },
+
+            plugins: {
+
+                legend: {
+                    position: 'bottom'
+                },
+
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return context.dataset.label + ': ' +
+                                Number(context.parsed.y).toLocaleString('id-ID') +
+                                ' gram';
+                        }
+                    }
+                }
+
+            },
+
+            scales: {
+
+                y: {
+                    beginAtZero: true,
+
+                    title: {
+                        display: true,
+                        text: 'Stok Pakan (gram)'
+                    }
+                },
+
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Periode'
+                    }
+                }
+
+            }
+
+        }
+
+    });
+
+});
+</script>
+
 @endsection
