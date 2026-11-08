@@ -1,12 +1,40 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
 /* ==========================================
    STOK PAGE MAIN STYLING
+   (nama class tetap sama, hanya tampilan yang diubah)
    ========================================== */
 
 .stock-page {
+    --sea-deep: #052e4a;
+    --sea-mid: #0a6a8f;
+    --sea-bright: #1296c4;
+    --aqua: #5eead4;
+    --ink: #0f2a3a;
+    --muted: #5b7384;
+    --line: #d3e4ec;
+
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
     padding-bottom: 2rem;
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    color: var(--ink);
+}
+
+@keyframes stkFadeUp {
+    from { opacity: 0; transform: translateY(24px) scale(0.98); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes stkFloat {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-6px); }
+}
+
+@keyframes stkFlow {
+    from { background-position: 0 0; }
+    to   { background-position: -200% 0; }
 }
 
 /* --- 1. SUMMARY STOK GRID --- */
@@ -17,63 +45,107 @@
 }
 
 .stock-metric-card {
+    --accent: var(--sea-bright);
+    --accent-soft: rgba(18, 150, 196, 0.13);
+
+    position: relative;
+    overflow: hidden;
     padding: 1.25rem 1.5rem;
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
-    border-radius: 12px;
+    border-radius: 16px;
     background: #ffffff;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02), 0 1px 6px rgba(0, 0, 0, 0.04);
-    border: 1px solid #f1f5f9;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: 0 10px 25px -14px rgba(5, 46, 74, 0.3);
+    border: 1px solid #e3eef4;
+    border-top: 4px solid var(--accent);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    animation: stkFadeUp 0.7s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+/* Kartu muncul satu per satu, dengan warna aksen berbeda */
+.stock-metric-card:nth-child(1) { animation-delay: 0.1s; }
+.stock-metric-card:nth-child(2) { animation-delay: 0.22s; --accent: #14b8a6; --accent-soft: rgba(20, 184, 166, 0.14); }
+.stock-metric-card:nth-child(3) { animation-delay: 0.34s; --accent: #f59e0b; --accent-soft: rgba(245, 158, 11, 0.15); }
+.stock-metric-card:nth-child(4) { animation-delay: 0.46s; --accent: #0a6a8f; --accent-soft: rgba(10, 106, 143, 0.13); }
+
+/* Lingkaran lembut di pojok kartu */
+.stock-metric-card::after {
+    content: '';
+    position: absolute;
+    right: -45px;
+    bottom: -55px;
+    width: 140px;
+    height: 140px;
+    border-radius: 50%;
+    background: var(--accent-soft);
+    transition: transform 0.5s ease;
+    pointer-events: none;
+}
+
+.stock-metric-card > * {
+    position: relative;
+    z-index: 1;
 }
 
 .stock-metric-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+    transform: translateY(-5px);
+    box-shadow: 0 20px 34px -16px rgba(5, 46, 74, 0.38);
+}
+
+.stock-metric-card:hover::after {
+    transform: scale(1.5);
 }
 
 .stock-metric-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: #64748b;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--muted);
 }
 
 .stock-icon {
-    width: 36px;
-    height: 36px;
-    border-radius: 8px;
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1rem;
+    font-size: 1.05rem;
+    animation: stkFloat 4.5s ease-in-out infinite;
 }
 
-.stock-icon-blue { background-color: #eff6ff; color: #3b82f6; }
-.stock-icon-green { background-color: #f0fdf4; color: #22c55e; }
-.stock-icon-yellow { background-color: #fefce8; color: #eab308; }
+.stock-icon-blue   { background-color: rgba(18, 150, 196, 0.13); color: #0e86b5; }
+.stock-icon-green  { background-color: rgba(20, 184, 166, 0.14); color: #0f9b8e; }
+.stock-icon-yellow { background-color: rgba(245, 158, 11, 0.15); color: #d97706; }
+
+.stock-metric-card:nth-child(2) .stock-icon { animation-delay: 0.5s; }
+.stock-metric-card:nth-child(3) .stock-icon { animation-delay: 1s; }
+.stock-metric-card:nth-child(4) .stock-icon { animation-delay: 1.5s; }
 
 .stock-metric-value {
-    font-size: 1.75rem;
-    font-weight: 700;
-    color: #0f172a;
+    font-size: 1.85rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: var(--ink);
     display: flex;
     align-items: baseline;
     gap: 0.35rem;
+    font-variant-numeric: tabular-nums;
 }
 
 .stock-metric-value span {
     font-size: 0.875rem;
-    font-weight: 500;
-    color: #64748b;
+    font-weight: 600;
+    letter-spacing: 0;
+    color: var(--muted);
 }
 
 .stock-metric-sub {
-    font-size: 0.75rem;
-    color: #94a3b8;
+    font-size: 0.78rem;
+    color: #7a93a3;
 }
 
 
@@ -91,18 +163,56 @@
 }
 
 .stock-card-title {
-    font-size: 1rem;
-    font-weight: 600;
-    color: #1e293b;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-size: 1.05rem;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    color: var(--ink);
     margin-bottom: 1.25rem;
 }
 
+/* Penanda kecil di depan judul kartu */
+.stock-card-title::before {
+    content: '';
+    width: 4px;
+    height: 1.1em;
+    border-radius: 4px;
+    background: linear-gradient(180deg, var(--sea-bright), var(--aqua));
+}
+
 /* Indikator Stok */
-.stock-indicator-card {
+.stock-indicator-card,
+.stock-add-card,
+.stock-history-card {
+    position: relative;
+    overflow: hidden;
     padding: 1.5rem;
     background: #ffffff;
-    border-radius: 12px;
-    border: 1px solid #f1f5f9;
+    border-radius: 18px;
+    border: 1px solid #e3eef4;
+    box-shadow: 0 12px 28px -16px rgba(5, 46, 74, 0.3);
+    animation: stkFadeUp 0.7s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+.stock-indicator-card { animation-delay: 0.5s; }
+.stock-add-card       { animation-delay: 0.62s; }
+.stock-history-card   { animation-delay: 0.74s; }
+
+/* Garis air tipis yang mengalir di atas kartu */
+.stock-indicator-card::before,
+.stock-add-card::before,
+.stock-history-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--sea-bright), var(--aqua), var(--sea-bright));
+    background-size: 200% 100%;
+    animation: stkFlow 6s linear infinite;
 }
 
 .stock-level {
@@ -116,23 +226,46 @@
     display: flex;
     justify-content: space-between;
     font-size: 0.875rem;
-    color: #475569;
+    font-weight: 600;
+    color: #36566b;
 }
 
 .stock-progress {
+    position: relative;
     width: 100%;
-    height: 10px;
-    background-color: #f1f5f9;
-    border-radius: 6px;
+    height: 12px;
+    background-color: #e1eef4;
+    border-radius: 999px;
     overflow: hidden;
 }
 
 .stock-progress-fill {
+    position: relative;
     height: 100%;
     width: 0%; /* Ubah dinamis sesuai persentase */
-    background-color: #3b82f6;
-    border-radius: 6px;
-    transition: width 0.4s ease;
+    background: linear-gradient(90deg, var(--sea-bright), var(--aqua));
+    border-radius: 999px;
+    transition: width 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+    animation: stkFillIn 1.2s 0.7s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+@keyframes stkFillIn {
+    from { width: 0; }
+}
+
+/* Kilau air yang bergerak di atas isi stok */
+.stock-progress-fill::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(100deg, transparent 30%, rgba(255, 255, 255, 0.55) 50%, transparent 70%);
+    background-size: 200% 100%;
+    animation: stkShimmer 2.6s linear infinite;
+}
+
+@keyframes stkShimmer {
+    from { background-position: 200% 0; }
+    to   { background-position: -200% 0; }
 }
 
 /* Status List */
@@ -140,7 +273,7 @@
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
-    border-top: 1px solid #f1f5f9;
+    border-top: 1px solid #e3eef4;
     padding-top: 1rem;
 }
 
@@ -149,7 +282,16 @@
     align-items: center;
     gap: 0.75rem;
     font-size: 0.875rem;
-    color: #334155;
+    color: #36566b;
+    padding: 0.35rem 0.5rem;
+    margin: 0 -0.5rem;
+    border-radius: 10px;
+    transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.stock-status-item:hover {
+    background-color: rgba(18, 150, 196, 0.06);
+    transform: translateX(4px);
 }
 
 .stock-status-item span:nth-child(2) {
@@ -162,82 +304,131 @@
     border-radius: 50%;
 }
 
-.status-safe { background-color: #22c55e; }
-.status-warning { background-color: #f59e0b; }
-.status-danger { background-color: #ef4444; }
+.status-safe    { background-color: #22c55e; }
+.status-warning { background-color: #f59e0b; animation: stkPulse 1.8s ease-in-out infinite; }
+.status-danger  { background-color: #ef4444; animation: stkPulse 1.2s ease-in-out infinite; }
+
+@keyframes stkPulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%      { opacity: 0.4; transform: scale(1.4); }
+}
 
 /* Badges */
 .badge {
-    padding: 0.25rem 0.6rem;
+    padding: 0.3rem 0.7rem;
     font-size: 0.75rem;
-    font-weight: 600;
-    border-radius: 6px;
+    font-weight: 700;
+    border-radius: 999px;
 }
-.badge-green { background-color: #f0fdf4; color: #16a34a; }
-.badge-amber { background-color: #fffbeb; color: #d97706; }
-.badge-red { background-color: #fef2f2; color: #dc2626; }
+.badge-green { background-color: #ecfdf5; color: #15803d; }
+.badge-amber { background-color: #fffbeb; color: #b45309; }
+.badge-red   { background-color: #fef2f2; color: #dc2626; }
 
 
 /* Form Tambah Stok */
-.stock-add-card {
-    padding: 1.5rem;
-    background: #ffffff;
-    border-radius: 12px;
-    border: 1px solid #f1f5f9;
-}
-
 .form-group {
     margin-bottom: 1rem;
 }
 
 .form-label {
     display: block;
-    font-size: 0.8125rem;
-    font-weight: 500;
-    color: #475569;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #36566b;
     margin-bottom: 0.4rem;
 }
 
 .form-input {
     width: 100%;
-    padding: 0.625rem 0.875rem;
+    padding: 0.7rem 0.9rem;
+    font-family: inherit;
     font-size: 0.875rem;
-    border: 1px solid #cbd5e1;
-    border-radius: 8px;
+    color: var(--ink);
+    background-color: #f7fbfd;
+    border: 1.5px solid var(--line);
+    border-radius: 12px;
     outline: none;
-    transition: border-color 0.2s, box-shadow 0.2s;
+    transition: border-color 0.25s ease, box-shadow 0.25s ease, background-color 0.25s ease, transform 0.25s ease;
+}
+
+.form-input:hover {
+    border-color: #a9cddd;
 }
 
 .form-input:focus {
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+    border-color: var(--sea-bright);
+    background-color: #ffffff;
+    box-shadow: 0 0 0 4px rgba(18, 150, 196, 0.15);
+    transform: translateY(-1px);
+}
+
+.form-input::placeholder {
+    color: #9bb2c0;
 }
 
 .stock-submit-btn {
+    position: relative;
+    overflow: hidden;
     width: 100%;
     margin-top: 0.5rem;
-    padding: 0.625rem;
+    padding: 0.8rem;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-    font-weight: 500;
-    border-radius: 8px;
+    font-family: inherit;
+    font-weight: 700;
+    border-radius: 12px;
     cursor: pointer;
-    background-color: #3b82f6;
+    background: linear-gradient(135deg, var(--sea-bright), var(--sea-mid));
     border: none;
     color: white;
-    transition: background-color 0.2s;
+    box-shadow: 0 8px 18px -6px rgba(10, 106, 143, 0.55);
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+/* Kilau yang lewat saat tombol di-hover */
+.stock-submit-btn::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -80%;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+    transform: skewX(-20deg);
+    pointer-events: none;
 }
 
 .stock-submit-btn:hover {
-    background-color: #2563eb;
+    background: linear-gradient(135deg, var(--sea-bright), var(--sea-mid));
+    transform: translateY(-2px);
+    box-shadow: 0 14px 24px -8px rgba(10, 106, 143, 0.6);
+}
+
+.stock-submit-btn:hover::after {
+    left: 130%;
+    transition: left 0.7s ease;
+}
+
+.stock-submit-btn:active {
+    transform: scale(0.98);
+}
+
+.stock-submit-btn:focus-visible {
+    outline: 3px solid rgba(18, 150, 196, 0.35);
+    outline-offset: 3px;
 }
 
 .stock-plus-icon {
     font-size: 1.1rem;
     font-weight: 700;
     line-height: 1;
+    transition: transform 0.3s ease;
+}
+
+.stock-submit-btn:hover .stock-plus-icon {
+    transform: rotate(90deg) scale(1.1);
 }
 
 .stock-info-box {
@@ -245,33 +436,30 @@
     align-items: flex-start;
     gap: 0.5rem;
     margin-top: 1rem;
-    padding: 0.75rem;
+    padding: 0.8rem;
     background-color: #fffbeb;
-    border: 1px solid #fef3c7;
-    border-radius: 8px;
-    font-size: 0.75rem;
+    border: 1px solid #fde68a;
+    border-left: 4px solid #f59e0b;
+    border-radius: 10px;
+    font-size: 0.78rem;
+    line-height: 1.5;
     color: #92400e;
 }
 
 
 /* --- 3. RIWAYAT PENGISIAN STOK --- */
-.stock-history-card {
-    padding: 1.5rem;
-    background: #ffffff;
-    border-radius: 12px;
-    border: 1px solid #f1f5f9;
-}
-
 .stock-history-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 1rem;
+    gap: 0.75rem;
+    flex-wrap: wrap;
 }
 
 .stock-history-description {
     font-size: 0.8125rem;
-    color: #64748b;
+    color: var(--muted);
 }
 
 .table-wrapper {
@@ -286,39 +474,108 @@
 }
 
 .stock-table th {
-    padding: 0.75rem 1rem;
-    background-color: #f8fafc;
-    color: #475569;
-    font-weight: 600;
-    border-bottom: 1px solid #e2e8f0;
+    padding: 0.85rem 1rem;
+    background-color: #eef7fb;
+    color: #36566b;
+    font-weight: 700;
+    border-bottom: 1px solid #e3eef4;
+    white-space: nowrap;
 }
 
 .stock-table td {
-    padding: 0.875rem 1rem;
-    border-bottom: 1px solid #f1f5f9;
-    color: #334155;
+    padding: 0.9rem 1rem;
+    border-bottom: 1px solid #e8f1f6;
+    color: #1f3b4d;
+    transition: background-color 0.2s ease;
+}
+
+.stock-table tbody tr {
+    transition: box-shadow 0.2s ease;
+    animation: stkRowIn 0.5s ease-out backwards;
+}
+
+.stock-table tbody tr:hover td {
+    background-color: rgba(18, 150, 196, 0.06);
+}
+
+.stock-table tbody tr:hover {
+    box-shadow: inset 4px 0 0 var(--sea-bright);
+}
+
+/* Baris tabel muncul bergantian */
+.stock-table tbody tr:nth-child(1) { animation-delay: 0.85s; }
+.stock-table tbody tr:nth-child(2) { animation-delay: 0.92s; }
+.stock-table tbody tr:nth-child(3) { animation-delay: 0.99s; }
+.stock-table tbody tr:nth-child(4) { animation-delay: 1.06s; }
+.stock-table tbody tr:nth-child(5) { animation-delay: 1.13s; }
+.stock-table tbody tr:nth-child(n+6) { animation-delay: 1.2s; }
+
+@keyframes stkRowIn {
+    from { opacity: 0; transform: translateX(-14px); }
+    to   { opacity: 1; transform: translateX(0); }
 }
 
 /* Empty Table State Styling */
 .empty-table {
     text-align: center;
     padding: 3rem 1rem !important;
-    color: #64748b;
+    color: var(--muted);
+    background-image: radial-gradient(rgba(18, 150, 196, 0.08) 1px, transparent 1px);
+    background-size: 18px 18px;
 }
 
 .empty-table-icon {
+    display: inline-block;
     font-size: 2.5rem;
     margin-bottom: 0.5rem;
+    color: #a9cddd;
+    animation: stkFloat 4s ease-in-out infinite;
 }
 
 .empty-table strong {
     display: block;
     font-size: 0.95rem;
-    color: #1e293b;
+    color: #36566b;
     margin-bottom: 0.25rem;
 }
 
 .empty-table span {
     font-size: 0.8125rem;
-    color: #94a3b8;
+    color: #7a93a3;
+}
+
+/* --- HP --- */
+@media (max-width: 576px) {
+    .stock-page {
+        gap: 1.1rem;
+    }
+
+    .stock-summary-grid {
+        gap: 1rem;
+    }
+
+    .stock-metric-value {
+        font-size: 1.6rem;
+    }
+
+    .stock-indicator-card,
+    .stock-add-card,
+    .stock-history-card {
+        padding: 1.15rem;
+    }
+
+    .stock-metric-card:hover {
+        transform: none;
+    }
+}
+
+/* Hormati pengguna yang mematikan animasi di perangkatnya */
+@media (prefers-reduced-motion: reduce) {
+    .stock-page *,
+    .stock-page *::before,
+    .stock-page *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
 }

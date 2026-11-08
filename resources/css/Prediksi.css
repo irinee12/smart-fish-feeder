@@ -1,213 +1,319 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
 /* ==========================================
-   PREDIKSI REFILL PAGE STYLING
+   PREDIKSI REFILL - TAMPILAN (TEMA LAUT, VERSI TENANG)
+   Simpan di: public/css/prediksi.css
    ========================================== */
 
 .prediction-page {
+    --sea-deep: #052e4a;
+    --sea-mid: #0a6a8f;
+    --sea-bright: #1296c4;
+    --aqua: #5eead4;
+    --ink: #0f2a3a;
+    --muted: #5b7384;
+    --line: #d3e4ec;
+
+    min-height: 100vh;
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    background: linear-gradient(160deg, #e8f6fa 0%, #f4fafc 50%, #e3f1f7 100%);
+    color: var(--ink);
+    padding-bottom: 1rem;
+}
+
+@keyframes prdFloat {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-5px); }
+}
+
+/* ---------- HEADER FULL LEBAR ---------- */
+.prediction-hero {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
     display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-    padding: 2rem;
-}
-
-/* --- Banner Prediksi Utama --- */
-.prediction-banner {
-    background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
-    color: white;
-    padding: 2rem;
-    border-radius: 16px;
-    box-shadow: 0 4px 15px rgba(13, 110, 253, 0.2);
-    border: none;
-}
-
-.prediction-label {
-    display: inline-block;
-    background: rgba(255, 255, 255, 0.2);
-    padding: 0.25rem 0.75rem;
-    border-radius: 20px;
-    font-size: 0.8rem;
-    font-weight: 600;
-    margin-bottom: 0.75rem;
-    letter-spacing: 0.5px;
-}
-
-.prediction-title {
-    font-size: 1.5rem;
-    font-weight: 700;
-    margin-bottom: 0.5rem;
-}
-
-.prediction-description {
-    font-size: 0.95rem;
-    opacity: 0.9;
-    max-width: 600px;
+    align-items: center;
+    padding: 1rem 1.5rem 2.25rem;
     margin-bottom: 1.5rem;
+    color: #ffffff;
+    background:
+        radial-gradient(circle at 15% 10%, rgba(94, 234, 212, 0.3), transparent 45%),
+        linear-gradient(135deg, var(--sea-bright) 0%, var(--sea-mid) 55%, var(--sea-deep) 100%);
+    box-shadow: 0 10px 24px -12px rgba(5, 46, 74, 0.5);
+    animation: prdHeroIn 0.7s ease-out both;
 }
 
-.prediction-summary {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 1rem;
-    background: rgba(255, 255, 255, 0.1);
-    padding: 1rem;
-    border-radius: 12px;
-    backdrop-filter: blur(5px);
+@keyframes prdHeroIn {
+    from { opacity: 0; transform: translateY(-16px); }
+    to   { opacity: 1; transform: translateY(0); }
 }
 
-.prediction-summary-item {
+.prediction-hero-inner {
+    position: relative;
+    z-index: 3;
     display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
+    align-items: center;
+    gap: 1rem;
 }
 
-.prediction-summary-label {
-    font-size: 0.75rem;
-    opacity: 0.8;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.prediction-summary-value {
+.prediction-hero-icon {
+    padding: 0.5rem 0.65rem;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(4px);
     font-size: 1.25rem;
+    line-height: 1;
+    animation: prdFloat 5s ease-in-out infinite;
+}
+
+.prediction-hero h4 {
+    margin: 0;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+}
+
+.prediction-hero p {
+    margin: 0;
+    font-size: 0.875rem;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.prediction-bubbles {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+}
+
+.prediction-bubbles span {
+    position: absolute;
+    bottom: -20px;
+    left: var(--x);
+    width: var(--s);
+    height: var(--s);
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.75), rgba(255, 255, 255, 0.1));
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    animation: prdBubble var(--d) var(--delay) linear infinite;
+}
+
+@keyframes prdBubble {
+    0%   { transform: translateY(0) translateX(0); opacity: 0; }
+    15%  { opacity: 1; }
+    100% { transform: translateY(-120px) translateX(12px); opacity: 0; }
+}
+
+.prediction-waves {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 30px;
+    z-index: 2;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.prediction-wave {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 200%;
+    height: 100%;
+}
+
+.prediction-wave-back {
+    fill: rgba(255, 255, 255, 0.18);
+    animation: prdWave 10s linear infinite;
+}
+
+.prediction-wave-front {
+    fill: rgba(255, 255, 255, 0.3);
+    height: 70%;
+    animation: prdWave 6s linear infinite reverse;
+}
+
+@keyframes prdWave {
+    from { transform: translateX(0); }
+    to   { transform: translateX(-50%); }
+}
+
+/* ---------- WADAH KONTEN ---------- */
+.prediction-container {
+    padding: 0 1.5rem 1rem;
+}
+
+/* ---------- STATUS PREDIKSI ---------- */
+.prediction-status-card {
+    background: #eef7fb;
+    border: 1px solid #cfe5ee;
+    border-radius: 12px;
+    padding: 18px 22px;
+    margin-bottom: 20px;
+}
+
+.prediction-status-card h5 {
     font-weight: 700;
+    color: var(--sea-mid);
+    margin-bottom: 6px;
 }
 
-.prediction-summary-value span {
-    font-size: 0.8rem;
-    font-weight: 400;
-    opacity: 0.8;
+.prediction-status-card p {
+    color: #36566b;
+    margin-bottom: 0;
 }
 
-/* --- Summary Metrics Grid --- */
+/* ---------- 3 KARTU RINGKASAN ---------- */
 .prediction-metrics-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    gap: 1.25rem;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 20px;
 }
 
 .prediction-metric-card {
-    padding: 1.25rem 1.5rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    border-radius: 12px;
     background: #ffffff;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02), 0 1px 6px rgba(0, 0, 0, 0.04);
-    border: 1px solid #f1f5f9;
-    transition: transform 0.2s ease;
-}
-
-.prediction-metric-card:hover {
-    transform: translateY(-2px);
-}
-
-.prediction-metric-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: #64748b;
-}
-
-.prediction-icon {
-    width: 36px;
-    height: 36px;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1rem;
-}
-
-.prediction-icon-blue { background-color: #eff6ff; color: #3b82f6; }
-.prediction-icon-yellow { background-color: #fefce8; color: #eab308; }
-.prediction-icon-green { background-color: #f0fdf4; color: #22c55e; }
-
-.prediction-metric-value {
-    font-size: 1.75rem;
-    font-weight: 700;
-    color: #0f172a;
-    display: flex;
-    align-items: baseline;
-    gap: 0.35rem;
-}
-
-.prediction-metric-value span {
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: #64748b;
-}
-
-.prediction-metric-sub {
-    font-size: 0.75rem;
-    color: #94a3b8;
-}
-
-/* --- Chart & Content Cards --- */
-.prediction-chart-card {
-    padding: 1.5rem;
-    background: #ffffff;
+    border: 1px solid #e1ecf2;
     border-radius: 12px;
-    border: 1px solid #f1f5f9;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+    padding: 20px 22px;
+    box-shadow: 0 1px 3px rgba(5, 46, 74, 0.06);
 }
 
-.prediction-chart-title {
-    font-size: 1rem;
+.prediction-metric-card h6 {
+    color: var(--muted);
+    font-size: 13px;
     font-weight: 600;
-    color: #1e293b;
-    margin-bottom: 0.25rem;
+    margin-bottom: 10px;
 }
 
-.prediction-chart-description {
-    font-size: 0.8125rem;
-    color: #64748b;
-    margin-bottom: 1.25rem;
+.prediction-metric-card h3 {
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 6px;
+    font-variant-numeric: tabular-nums;
 }
 
-.prediction-empty-chart {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    padding: 3rem 1rem;
-    background-color: #f8fafc;
-    border: 2px dashed #e2e8f0;
+.prediction-metric-card p {
+    font-size: 12px;
+    color: #7a93a3;
+    margin-bottom: 0;
+}
+
+/* ---------- KARTU BAGIAN (INFORMASI, GRAFIK, TABEL) ---------- */
+.prediction-section-card {
+    background: #ffffff;
+    border: 1px solid #e1ecf2;
+    border-radius: 12px;
+    padding: 22px;
+    margin-bottom: 20px;
+    box-shadow: 0 1px 3px rgba(5, 46, 74, 0.06);
+}
+
+.prediction-section-card h5 {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 18px;
+}
+
+.prediction-section-card .row h4 {
+    color: var(--ink);
+    font-weight: 700 !important;
+    font-variant-numeric: tabular-nums;
+}
+
+.prediction-section-card .row small,
+.prediction-section-card > small {
+    color: var(--muted) !important;
+}
+
+/* ---------- GRAFIK ---------- */
+.prediction-chart-container {
+    position: relative;
+    width: 100%;
+    height: 320px;
+}
+
+.prediction-info {
+    color: var(--muted);
+    font-size: 13px;
+    margin-top: 15px;
+}
+
+/* ---------- TABEL RIWAYAT ---------- */
+.prediction-section-card .table {
+    --bs-table-hover-bg: #f3f9fc;
+    --bs-table-border-color: #e8f0f5;
+    margin-bottom: 0;
+}
+
+.prediction-section-card .table-light {
+    --bs-table-bg: #f3f8fb;
+    --bs-table-color: #36566b;
+    --bs-table-border-color: #e1ecf2;
+}
+
+.prediction-section-card .table th {
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+/* Badge status data */
+.prediction-section-card .badge {
+    font-weight: 600;
+    border-radius: 6px;
+    padding: 0.4em 0.7em;
+}
+
+.prediction-section-card .badge.bg-success {
+    background-color: #e8f6ee !important;
+    color: #15803d !important;
+}
+
+.prediction-section-card .badge.bg-warning {
+    background-color: #fdf3df !important;
+    color: #a16207 !important;
+}
+
+/* Kondisi kosong (teks "Belum ada data stok...") */
+.prediction-section-card .text-center.text-muted.py-5 {
+    border: 1px dashed #c9dde7;
     border-radius: 10px;
-    color: #64748b;
-    gap: 0.5rem;
+    background-color: #f8fbfd;
 }
 
-.prediction-empty-chart-small {
-    padding: 2rem 1rem;
+/* ---------- HP ---------- */
+@media (max-width: 768px) {
+    .prediction-metrics-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .prediction-container {
+        padding: 0 12px 1rem;
+    }
+
+    .prediction-hero {
+        padding: 1rem 1rem 2rem;
+    }
+
+    .prediction-hero h4 {
+        font-size: 1.15rem;
+    }
+
+    .prediction-chart-container {
+        height: 260px;
+    }
 }
 
-.prediction-empty-icon {
-    font-size: 2.5rem;
-    margin-bottom: 0.25rem;
-}
-
-.prediction-empty-chart strong {
-    font-size: 0.95rem;
-    color: #1e293b;
-}
-
-.prediction-empty-chart span {
-    font-size: 0.8125rem;
-    color: #94a3b8;
-    max-width: 350px;
-}
-
-.prediction-warning {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin-top: 1rem;
-    padding: 0.75rem 1rem;
-    background-color: #fffbeb;
-    border: 1px solid #fef3c7;
-    border-radius: 8px;
-    font-size: 0.8rem;
-    color: #92400e;
+/* Hormati pengguna yang mematikan animasi di perangkatnya */
+@media (prefers-reduced-motion: reduce) {
+    .prediction-page *,
+    .prediction-page *::before,
+    .prediction-page *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
 }

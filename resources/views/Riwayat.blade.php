@@ -3,14 +3,404 @@
 @section('title', 'Riwayat Pakan - Smart Fish Feeder')
 
 @section('content')
-<div class="container-fluid px-0" style="background-color: #f8f9fa; min-height: 100vh;">
+
+{{-- CSS TAMPILAN (dibawa langsung di dalam file ini) --}}
+<style>
+/* ==========================================
+   RIWAYAT PAKAN - TAMPILAN (TEMA LAUT)
+   Simpan di: public/css/riwayat.css
+   ========================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+.rwy {
+    --sea-deep: #052e4a;
+    --sea-mid: #0a6a8f;
+    --sea-bright: #1296c4;
+    --aqua: #5eead4;
+    --ink: #0f2a3a;
+    --muted: #5b7384;
+
+    min-height: 100vh;
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    background: linear-gradient(160deg, #e8f6fa 0%, #f4fafc 50%, #e3f1f7 100%);
+    color: var(--ink);
+}
+
+/* ---------- HEADER ---------- */
+.rwy-header {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+    padding-bottom: 2.25rem !important;
+    background:
+        radial-gradient(circle at 15% 10%, rgba(94, 234, 212, 0.3), transparent 45%),
+        linear-gradient(135deg, var(--sea-bright) 0%, var(--sea-mid) 55%, var(--sea-deep) 100%);
+    box-shadow: 0 10px 24px -12px rgba(5, 46, 74, 0.5);
+    animation: rwyHeaderIn 0.7s ease-out both;
+}
+
+@keyframes rwyHeaderIn {
+    from { opacity: 0; transform: translateY(-16px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.rwy-header h4 {
+    letter-spacing: -0.02em;
+}
+
+.rwy-header-inner {
+    position: relative;
+    z-index: 3;
+}
+
+.rwy-header-icon {
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(4px);
+    animation: rwyFloat 5s ease-in-out infinite;
+}
+
+@keyframes rwyFloat {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-5px); }
+}
+
+.rwy-bubbles {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+}
+
+.rwy-bubbles span {
+    position: absolute;
+    bottom: -20px;
+    left: var(--x);
+    width: var(--s);
+    height: var(--s);
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.75), rgba(255, 255, 255, 0.1));
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    animation: rwyBubble var(--d) var(--delay) linear infinite;
+}
+
+@keyframes rwyBubble {
+    0%   { transform: translateY(0) translateX(0); opacity: 0; }
+    15%  { opacity: 1; }
+    100% { transform: translateY(-120px) translateX(12px); opacity: 0; }
+}
+
+.rwy-waves {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 30px;
+    z-index: 2;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.rwy-wave {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 200%;
+    height: 100%;
+}
+
+.rwy-wave-back {
+    fill: rgba(255, 255, 255, 0.18);
+    animation: rwyWave 10s linear infinite;
+}
+
+.rwy-wave-front {
+    fill: rgba(255, 255, 255, 0.3);
+    height: 70%;
+    animation: rwyWave 6s linear infinite reverse;
+}
+
+@keyframes rwyWave {
+    from { transform: translateX(0); }
+    to   { transform: translateX(-50%); }
+}
+
+/* ---------- LAYOUT HALAMAN ---------- */
+.rwy .history-page {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    text-align: left;
+}
+
+/* --- 1. FILTER & EXPORT CARD --- */
+.rwy .history-filter-card {
+    padding: 1.25rem 1.5rem;
+    background: #ffffff;
+    border-radius: 12px;
+    border: 1px solid #e1ecf2;
+    box-shadow: 0 1px 3px rgba(5, 46, 74, 0.06);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.rwy .history-filter-left {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.rwy .form-label-custom {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin: 0;
+}
+
+.rwy .form-input-custom {
+    padding: 0.55rem 0.8rem;
+    font-family: inherit;
+    font-size: 0.875rem;
+    border: 1px solid #c9dde7;
+    border-radius: 8px;
+    outline: none;
+    background-color: #ffffff;
+    color: var(--ink);
+    transition: border-color 0.2s, box-shadow 0.2s;
+    width: 260px;
+}
+
+.rwy .form-input-custom:focus {
+    border-color: var(--sea-bright);
+    box-shadow: 0 0 0 3px rgba(18, 150, 196, 0.15);
+}
+
+/* Tombol Export PDF */
+.rwy .btn-primary {
+    background: var(--sea-mid);
+    border-color: var(--sea-mid);
+    color: #ffffff;
+    font-family: inherit;
+    font-weight: 600;
+    border-radius: 8px;
+    padding: 0.55rem 1.1rem;
+    transition: background-color 0.2s, border-color 0.2s;
+}
+
+.rwy .btn-primary:hover {
+    background: var(--sea-deep);
+    border-color: var(--sea-deep);
+    color: #ffffff;
+}
+
+.rwy .btn-primary:focus-visible {
+    outline: 3px solid rgba(18, 150, 196, 0.35);
+    outline-offset: 2px;
+}
+
+.rwy .history-export-icon {
+    font-size: 1.1rem;
+    line-height: 1;
+    font-weight: bold;
+}
+
+/* --- 2. GRAFIK & TABEL KARTU --- */
+.rwy .history-chart-card,
+.rwy .history-table-card {
+    padding: 1.5rem;
+    background: #ffffff;
+    border-radius: 12px;
+    border: 1px solid #e1ecf2;
+    box-shadow: 0 1px 3px rgba(5, 46, 74, 0.06);
+}
+
+.rwy .history-card-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 0.2rem;
+}
+
+.rwy .history-card-description {
+    font-size: 0.8125rem;
+    color: var(--muted);
+    margin-bottom: 1.25rem;
+}
+
+/* Empty Chart State */
+.rwy .history-empty-chart {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 3rem 1rem;
+    background-color: #f8fbfd;
+    border: 1px dashed #c9dde7;
+    border-radius: 10px;
+    color: var(--muted);
+    gap: 0.4rem;
+}
+
+.rwy .history-empty-icon {
+    font-size: 2.5rem;
+    margin-bottom: 0.25rem;
+}
+
+.rwy .history-empty-chart strong {
+    font-size: 0.95rem;
+    color: #36566b;
+}
+
+.rwy .history-empty-chart span {
+    font-size: 0.8125rem;
+    color: #7a93a3;
+    max-width: 350px;
+}
+
+/* --- 3. TABEL RIWAYAT --- */
+.rwy .history-table-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.rwy .history-data-count {
+    font-size: 0.8125rem;
+    color: var(--muted);
+    font-weight: 500;
+}
+
+.rwy .table-wrapper {
+    overflow-x: auto;
+}
+
+.rwy .history-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    font-size: 0.875rem;
+}
+
+.rwy .history-table th {
+    padding: 0.75rem 1rem;
+    background-color: #f3f8fb;
+    color: #36566b;
+    font-weight: 700;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid #e1ecf2;
+    white-space: nowrap;
+}
+
+.rwy .history-table td {
+    padding: 0.875rem 1rem;
+    border-bottom: 1px solid #e8f0f5;
+    color: #1f3b4d;
+}
+
+.rwy .history-table tbody tr:hover td {
+    background-color: #f3f9fc;
+}
+
+/* Empty Table State */
+.rwy .history-empty-table {
+    text-align: center !important;
+    padding: 3rem 1rem !important;
+    color: var(--muted);
+}
+
+.rwy .history-empty-table:hover {
+    background-color: transparent !important;
+}
+
+.rwy .history-empty-table-icon {
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.rwy .history-empty-table strong {
+    display: block;
+    font-size: 0.95rem;
+    color: #36566b;
+    margin-bottom: 0.25rem;
+}
+
+.rwy .history-empty-table span {
+    font-size: 0.8125rem;
+    color: #7a93a3;
+}
+
+/* ---------- HP ---------- */
+@media (max-width: 576px) {
+    .rwy-header h4 {
+        font-size: 1.15rem;
+    }
+
+    .rwy .history-filter-card {
+        align-items: stretch;
+    }
+
+    .rwy .history-filter-left,
+    .rwy .form-input-custom,
+    .rwy .btn-primary {
+        width: 100%;
+    }
+
+    .rwy .btn-primary {
+        justify-content: center;
+    }
+}
+
+/* Hormati pengguna yang mematikan animasi */
+@media (prefers-reduced-motion: reduce) {
+    .rwy *,
+    .rwy *::before,
+    .rwy *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+</style>
+
+<div class="rwy container-fluid px-0">
 
     {{-- =====================================================
         HEADER FULL WARNA (RAMPING & MENTOK TANPA LENGKUNGAN)
     ===================================================== --}}
-    <div class="py-3 px-4 mb-4 text-white shadow-sm d-flex align-items-center" style="background: linear-gradient(135deg, #2563eb, #1d4ed8); width: 100%;">
-        <div class="d-flex align-items-center gap-3">
-            <div class="p-2 bg-white bg-opacity-25 rounded-3">
+    <div class="rwy-header py-3 px-4 mb-4 text-white d-flex align-items-center">
+
+        {{-- GELEMBUNG DAN GELOMBANG (VISUAL SAJA) --}}
+        <div class="rwy-bubbles" aria-hidden="true">
+            <span style="--x:6%;  --s:12px; --d:8s;  --delay:0s;"></span>
+            <span style="--x:24%; --s:8px;  --d:6s;  --delay:2s;"></span>
+            <span style="--x:47%; --s:16px; --d:9s;  --delay:1s;"></span>
+            <span style="--x:68%; --s:9px;  --d:7s;  --delay:3s;"></span>
+            <span style="--x:86%; --s:13px; --d:8.5s;--delay:0.6s;"></span>
+        </div>
+        <div class="rwy-waves" aria-hidden="true">
+            <svg class="rwy-wave rwy-wave-back" viewBox="0 0 1200 60" preserveAspectRatio="none">
+                <path d="M0,30 C150,60 300,0 450,30 C600,60 750,0 900,30 C1050,60 1200,0 1350,30 L1350,60 L0,60 Z"/>
+            </svg>
+            <svg class="rwy-wave rwy-wave-front" viewBox="0 0 1200 60" preserveAspectRatio="none">
+                <path d="M0,30 C150,0 300,60 450,30 C600,0 750,60 900,30 C1050,0 1200,60 1350,30 L1350,60 L0,60 Z"/>
+            </svg>
+        </div>
+
+        <div class="rwy-header-inner d-flex align-items-center gap-3">
+            <div class="rwy-header-icon p-2 rounded-3">
                 <i class="bi bi-clock-history fs-5 text-white"></i>
             </div>
             <div>
@@ -24,192 +414,6 @@
 
     {{-- BUNGKUS KONTEN DI BAWAHNYA DIBERI PADDING SUPAYA TIDAK IKUT MENEMPEL KE PINGGIR --}}
     <div class="px-4 pb-4">
-
-        {{-- =========================================================
-            CUSTOM STYLING (STRUKTUR REFERENSI + KONDISI KOSONG)
-        ========================================================= --}}
-        <style>
-            .history-page {
-                display: flex;
-                flex-direction: column;
-                gap: 1.5rem;
-                text-align: left;
-            }
-
-            /* --- 1. FILTER & EXPORT CARD --- */
-            .history-filter-card {
-                padding: 1.25rem 1.5rem;
-                background: #ffffff;
-                border-radius: 12px;
-                border: 1px solid #e2e8f0;
-                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
-                display: flex;
-                justify-content: space-between;
-                align-items: flex-end;
-                flex-wrap: wrap;
-                gap: 1rem;
-            }
-
-            .history-filter-left {
-                display: flex;
-                flex-direction: column;
-                gap: 0.5rem;
-            }
-
-            .form-label-custom {
-                font-size: 0.75rem;
-                font-weight: 700;
-                color: #64748b;
-                text-transform: uppercase;
-                letter-spacing: 0.5px;
-                margin: 0;
-            }
-
-            .form-input-custom {
-                padding: 0.5rem 0.75rem;
-                font-size: 0.875rem;
-                border: 1px solid #cbd5e1;
-                border-radius: 8px;
-                outline: none;
-                background-color: #ffffff;
-                color: #1e293b;
-                transition: border-color 0.2s, box-shadow 0.2s;
-                width: 260px;
-            }
-
-            .form-input-custom:focus {
-                border-color: #3b82f6;
-                box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
-            }
-
-            .history-export-icon {
-                font-size: 1.1rem;
-                line-height: 1;
-                font-weight: bold;
-            }
-
-            /* --- 2. GRAFIK & TABEL KARTU --- */
-            .history-chart-card,
-            .history-table-card {
-                padding: 1.5rem;
-                background: #ffffff;
-                border-radius: 12px;
-                border: 1px solid #e2e8f0;
-                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
-            }
-
-            .history-card-title {
-                font-size: 1rem;
-                font-weight: 600;
-                color: #1e293b;
-                margin-bottom: 0.2rem;
-            }
-
-            .history-card-description {
-                font-size: 0.8125rem;
-                color: #64748b;
-                margin-bottom: 1.25rem;
-            }
-
-            /* Empty Chart State */
-            .history-empty-chart {
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                justify-content: center;
-                text-align: center;
-                padding: 3rem 1rem;
-                background-color: #f8fafc;
-                border: 2px dashed #e2e8f0;
-                border-radius: 10px;
-                color: #64748b;
-                gap: 0.4rem;
-            }
-
-            .history-empty-icon {
-                font-size: 2.5rem;
-                margin-bottom: 0.25rem;
-            }
-
-            .history-empty-chart strong {
-                font-size: 0.95rem;
-                color: #1e293b;
-            }
-
-            .history-empty-chart span {
-                font-size: 0.8125rem;
-                color: #94a3b8;
-                max-width: 350px;
-            }
-
-            /* --- 3. TABEL RIWAYAT --- */
-            .history-table-header {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-bottom: 1rem;
-                flex-wrap: wrap;
-                gap: 0.5rem;
-            }
-
-            .history-data-count {
-                font-size: 0.8125rem;
-                color: #64748b;
-                font-weight: 500;
-            }
-
-            .table-wrapper {
-                overflow-x: auto;
-            }
-
-            .history-table {
-                width: 100%;
-                border-collapse: collapse;
-                text-align: left;
-                font-size: 0.875rem;
-            }
-
-            .history-table th {
-                padding: 0.75rem 1rem;
-                background-color: transparent;
-                color: #64748b;
-                font-weight: 700;
-                font-size: 0.75rem;
-                text-transform: uppercase;
-                letter-spacing: 0.5px;
-                border-bottom: 1px solid #e2e8f0;
-            }
-
-            .history-table td {
-                padding: 0.875rem 1rem;
-                border-bottom: 1px solid #f1f5f9;
-                color: #334155;
-            }
-
-            /* Empty Table State */
-            .history-empty-table {
-                text-align: center !important;
-                padding: 3rem 1rem !important;
-                color: #64748b;
-            }
-
-            .history-empty-table-icon {
-                font-size: 2.5rem;
-                margin-bottom: 0.5rem;
-            }
-
-            .history-empty-table strong {
-                display: block;
-                font-size: 0.95rem;
-                color: #1e293b;
-                margin-bottom: 0.25rem;
-            }
-
-            .history-empty-table span {
-                font-size: 0.8125rem;
-                color: #94a3b8;
-            }
-        </style>
 
         <div class="history-page">
 

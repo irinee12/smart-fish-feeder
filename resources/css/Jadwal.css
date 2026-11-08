@@ -1,65 +1,136 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
 /* =========================================================
    TYPOGRAPHY & LAYOUT UTAMA
+   (nama class tetap sama, hanya tampilan yang diubah)
 ========================================================= */
+.page-heading,
+.schedule-page-actions,
+.btn,
+.card,
+.popup-card,
+.form-input {
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
 .page-heading {
-    margin-bottom: 24px;
+    position: relative;
+    margin-bottom: 28px;
+    animation: jdwTitleIn 0.6s ease-out backwards;
 }
 .page-heading h2 {
     font-size: 1.75rem;
-    font-weight: 700;
-    color: #2b2f32;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: #0f2a3a;
     margin-bottom: 8px;
 }
 .page-heading p {
-    color: #6c757d;
+    color: #5b7384;
     margin: 0;
     font-size: 0.95rem;
+}
+/* Garis kecil yang memanjang di bawah judul */
+.page-heading::after {
+    content: '';
+    display: block;
+    width: 64px;
+    height: 4px;
+    margin-top: 14px;
+    border-radius: 4px;
+    background: linear-gradient(90deg, #1296c4, #5eead4);
+    animation: jdwBarGrow 0.9s 0.3s cubic-bezier(0.22, 1, 0.36, 1) backwards;
 }
 .schedule-page-actions {
     margin-bottom: 24px;
     display: flex;
     justify-content: flex-end;
+    animation: jdwFadeUp 0.6s 0.15s ease-out backwards;
+}
+
+@keyframes jdwTitleIn {
+    from { opacity: 0; transform: translateX(-20px); }
+    to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes jdwBarGrow {
+    from { width: 0; }
+    to   { width: 64px; }
+}
+@keyframes jdwFadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
 }
 
 /* =========================================================
    KOMPONEN BUTTON
 ========================================================= */
 .btn {
+    position: relative;
+    overflow: hidden;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
     padding: 10px 20px;
-    border-radius: 8px;
-    font-weight: 600;
+    border-radius: 12px;
+    font-weight: 700;
     cursor: pointer;
-    transition: all 0.2s ease-in-out;
+    transition: transform 0.25s ease, box-shadow 0.25s ease, background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease;
     border: 1px solid transparent;
     font-size: 0.95rem;
 }
+.btn:active {
+    transform: scale(0.97);
+}
+.btn:focus-visible {
+    outline: 3px solid rgba(18, 150, 196, 0.35);
+    outline-offset: 2px;
+}
 .btn-primary {
-    background-color: #0d6efd;
+    background: linear-gradient(135deg, #1296c4, #0a6a8f);
     color: #ffffff;
-    box-shadow: 0 4px 6px rgba(13, 110, 253, 0.2);
+    box-shadow: 0 8px 18px -6px rgba(10, 106, 143, 0.55);
+}
+/* Kilau yang lewat saat tombol di-hover */
+.btn-primary::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -80%;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+    transform: skewX(-20deg);
+    pointer-events: none;
 }
 .btn-primary:hover {
-    background-color: #0b5ed7;
-    transform: translateY(-1px);
+    background: linear-gradient(135deg, #1296c4, #0a6a8f);
+    transform: translateY(-2px);
+    box-shadow: 0 14px 24px -8px rgba(10, 106, 143, 0.6);
+}
+.btn-primary:hover::after {
+    left: 130%;
+    transition: left 0.7s ease;
 }
 .btn-outline {
     background-color: transparent;
-    border-color: #dee2e6;
-    color: #495057;
+    border-color: #c4dbe6;
+    color: #36566b;
 }
 .btn-outline:hover {
-    background-color: #f8f9fa;
-    color: #212529;
-    border-color: #ced4da;
+    background-color: #eaf5f9;
+    color: #0a6a8f;
+    border-color: #1296c4;
+    transform: translateY(-1px);
 }
 .btn-icon {
     font-size: 1.2rem;
     font-weight: normal;
     line-height: 1;
+    transition: transform 0.3s ease;
+}
+.btn:hover .btn-icon {
+    transform: rotate(90deg) scale(1.1);
 }
 
 /* =========================================================
@@ -67,27 +138,46 @@
 ========================================================= */
 .card {
     background: #ffffff;
-    border-radius: 12px;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.04);
-    border: 1px solid #f1f3f5;
+    border-radius: 18px;
+    box-shadow: 0 12px 28px -16px rgba(5, 46, 74, 0.3);
+    border: 1px solid #e3eef4;
     overflow: hidden;
     margin-bottom: 24px;
+    animation: jdwFadeUp 0.7s 0.25s cubic-bezier(0.22, 1, 0.36, 1) backwards;
 }
 .card-header {
+    position: relative;
     padding: 20px 24px;
-    border-bottom: 1px solid #f1f3f5;
-    background-color: #ffffff;
+    border-bottom: 1px solid #e3eef4;
+    background: linear-gradient(180deg, #f5fbfd 0%, #ffffff 100%);
+}
+/* Garis air tipis di atas kartu */
+.card-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #1296c4, #5eead4, #1296c4);
+    background-size: 200% 100%;
+    animation: jdwFlow 6s linear infinite;
+}
+@keyframes jdwFlow {
+    from { background-position: 0 0; }
+    to   { background-position: -200% 0; }
 }
 .card-header h3 {
     margin: 0 0 4px 0;
     font-size: 1.25rem;
-    color: #2b2f32;
-    font-weight: 600;
+    color: #0f2a3a;
+    font-weight: 700;
+    letter-spacing: -0.01em;
 }
 .card-header p {
     margin: 0;
     font-size: 0.9rem;
-    color: #6c757d;
+    color: #5b7384;
 }
 .table-wrapper {
     overflow-x: auto;
@@ -98,20 +188,45 @@
     margin: 0;
 }
 .table th {
-    background-color: #f8f9fa;
+    background-color: #eef7fb;
     padding: 16px 24px;
     text-align: left;
-    font-weight: 600;
-    color: #495057;
-    font-size: 0.85rem;
+    font-weight: 700;
+    color: #36566b;
+    font-size: 0.8rem;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    white-space: nowrap;
 }
 .table td {
     padding: 16px 24px;
-    border-bottom: 1px solid #f1f3f5;
-    color: #2b2f32;
+    border-bottom: 1px solid #e8f1f6;
+    color: #0f2a3a;
     vertical-align: middle;
+    transition: background-color 0.2s ease;
+}
+.table tbody tr {
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;
+    animation: jdwRowIn 0.5s ease-out backwards;
+}
+.table tbody tr:hover td {
+    background-color: rgba(18, 150, 196, 0.06);
+}
+.table tbody tr:hover {
+    box-shadow: inset 4px 0 0 #1296c4;
+}
+/* Baris tabel muncul bergantian */
+.table tbody tr:nth-child(1) { animation-delay: 0.35s; }
+.table tbody tr:nth-child(2) { animation-delay: 0.42s; }
+.table tbody tr:nth-child(3) { animation-delay: 0.49s; }
+.table tbody tr:nth-child(4) { animation-delay: 0.56s; }
+.table tbody tr:nth-child(5) { animation-delay: 0.63s; }
+.table tbody tr:nth-child(6) { animation-delay: 0.70s; }
+.table tbody tr:nth-child(n+7) { animation-delay: 0.77s; }
+
+@keyframes jdwRowIn {
+    from { opacity: 0; transform: translateX(-14px); }
+    to   { opacity: 1; transform: translateX(0); }
 }
 
 /* =========================================================
@@ -120,6 +235,8 @@
 .empty-table {
     text-align: center;
     padding: 60px 20px !important;
+    background-image: radial-gradient(rgba(18, 150, 196, 0.08) 1px, transparent 1px);
+    background-size: 18px 18px;
 }
 .empty-table-content {
     display: flex;
@@ -130,30 +247,37 @@
 }
 .empty-table-icon {
     font-size: 3.5rem;
-    color: #dee2e6;
+    color: #a9cddd;
     margin-bottom: 8px;
     line-height: 1;
+    animation: jdwFloat 4s ease-in-out infinite;
+}
+@keyframes jdwFloat {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-8px); }
 }
 .empty-table-content strong {
     font-size: 1.1rem;
-    color: #495057;
+    color: #36566b;
 }
 .empty-table-content span {
-    color: #868e96;
+    color: #7a93a3;
     font-size: 0.9rem;
 }
 .schedule-total {
     padding: 16px 24px;
-    background-color: #f8f9fa;
+    background-color: #eef7fb;
     text-align: right;
     font-size: 1rem;
-    color: #6c757d;
-    border-top: 1px solid #f1f3f5;
+    color: #5b7384;
+    border-top: 1px solid #e3eef4;
 }
 .schedule-total strong {
-    color: #212529;
-    font-size: 1.1rem;
+    color: #0a6a8f;
+    font-size: 1.15rem;
+    font-weight: 800;
     margin-left: 8px;
+    font-variant-numeric: tabular-nums;
 }
 
 /* =========================================================
@@ -165,15 +289,16 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.4);
+    background-color: rgba(5, 46, 74, 0.45);
     display: flex;
     align-items: center;
     justify-content: center;
     opacity: 0;
     visibility: hidden;
-    transition: all 0.3s ease-in-out;
+    transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
     z-index: 1050;
-    backdrop-filter: blur(3px); /* Efek blur pada background */
+    backdrop-filter: blur(4px); /* Efek blur pada background */
+    -webkit-backdrop-filter: blur(4px);
 }
 .popup-overlay.show {
     opacity: 1;
@@ -181,33 +306,49 @@
 }
 .popup-card {
     background-color: #ffffff;
-    border-radius: 16px;
+    border-radius: 20px;
     width: 90%;
     max-width: 450px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
-    transform: translateY(-30px);
-    transition: transform 0.3s ease-out;
-    overflow: hidden;
+    max-height: 92vh;
+    overflow-y: auto;
+    box-shadow: 0 30px 60px -20px rgba(5, 46, 74, 0.5);
+    transform: translateY(-30px) scale(0.94);
+    transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 .popup-overlay.show .popup-card {
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
 }
 .popup-header {
+    position: relative;
     padding: 24px;
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    border-bottom: 1px solid #f1f3f5;
+    border-bottom: 1px solid #e3eef4;
+    background: linear-gradient(180deg, #f1f9fc 0%, #ffffff 100%);
+}
+/* Garis air tipis di atas popup */
+.popup-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #1296c4, #5eead4, #1296c4);
+    background-size: 200% 100%;
+    animation: jdwFlow 6s linear infinite;
 }
 .popup-header h3 {
     margin: 0 0 4px 0;
     font-size: 1.25rem;
-    font-weight: 700;
-    color: #2b2f32;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    color: #0f2a3a;
 }
 .popup-header p {
     margin: 0;
-    color: #6c757d;
+    color: #5b7384;
     font-size: 0.9rem;
 }
 .popup-close {
@@ -215,13 +356,14 @@
     border: none;
     font-size: 1.8rem;
     line-height: 1;
-    color: #adb5bd;
+    color: #9bb2c0;
     cursor: pointer;
-    transition: color 0.2s ease;
+    transition: color 0.2s ease, transform 0.3s ease;
     padding: 0;
 }
 .popup-close:hover {
     color: #dc3545;
+    transform: rotate(90deg);
 }
 .popup-form {
     padding: 24px;
@@ -235,34 +377,74 @@
     gap: 8px;
 }
 .form-label {
-    font-weight: 600;
-    color: #495057;
-    font-size: 0.9rem;
+    font-weight: 700;
+    color: #36566b;
+    font-size: 0.88rem;
 }
 .form-input {
     padding: 12px 16px;
-    border: 1px solid #ced4da;
-    border-radius: 8px;
+    border: 1.5px solid #d3e4ec;
+    border-radius: 12px;
     font-size: 1rem;
-    color: #2b2f32;
-    transition: all 0.2s ease;
+    color: #0f2a3a;
+    transition: border-color 0.25s ease, box-shadow 0.25s ease, background-color 0.25s ease, transform 0.25s ease;
     outline: none;
-    background-color: #f8f9fa;
+    background-color: #f7fbfd;
     font-family: inherit;
 }
+.form-input:hover {
+    border-color: #a9cddd;
+}
 .form-input:focus {
-    border-color: #0d6efd;
+    border-color: #1296c4;
     background-color: #ffffff;
-    box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.15);
+    box-shadow: 0 0 0 4px rgba(18, 150, 196, 0.15);
+    transform: translateY(-1px);
 }
 .form-input::placeholder {
-    color: #adb5bd;
+    color: #9bb2c0;
 }
 .popup-actions {
     padding: 20px 24px;
-    background-color: #f8f9fa;
+    background-color: #eef7fb;
     display: flex;
     justify-content: flex-end;
     gap: 12px;
-    border-top: 1px solid #f1f3f5;
+    border-top: 1px solid #e3eef4;
+}
+
+/* =========================================================
+   HP
+========================================================= */
+@media (max-width: 576px) {
+    .page-heading h2 {
+        font-size: 1.4rem;
+    }
+    .schedule-page-actions {
+        justify-content: stretch;
+    }
+    .schedule-page-actions .btn {
+        width: 100%;
+    }
+    .table th,
+    .table td {
+        padding: 14px 16px;
+    }
+    .popup-actions {
+        flex-direction: column-reverse;
+    }
+    .popup-actions .btn {
+        width: 100%;
+    }
+}
+
+/* Hormati pengguna yang mematikan animasi di perangkatnya */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
 }
