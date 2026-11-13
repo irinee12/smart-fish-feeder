@@ -1,0 +1,1551 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+/* ==========================================
+   DETEKSI MATA IKAN - TAMPILAN (TEMA LAUT)
+   Simpan di: public/css/deteksi.css
+   Tanpa Tailwind, serasi dengan halaman lain
+   ========================================== */
+
+:root {
+    --sea-deep: #052e4a;
+    --sea-mid: #0a6a8f;
+    --sea-bright: #1296c4;
+    --aqua: #5eead4;
+    --ink: #0f2a3a;
+    --muted: #5b7384;
+    --subtle: #7a93a3;
+    --line: #e1ecf2;
+    --line-strong: #c9dde7;
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html {
+    -webkit-text-size-adjust: 100%;
+}
+
+body.dt-body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    font-size: 14px;
+    color: var(--ink);
+    background: linear-gradient(160deg, #e8f6fa 0%, #f4fafc 50%, #e3f1f7 100%);
+    background-attachment: fixed;
+    -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, p, ul { margin: 0; padding: 0; }
+
+button, input { font: inherit; }
+button { cursor: pointer; }
+svg { display: block; flex-shrink: 0; }
+
+/* Dipakai oleh JavaScript untuk menyembunyikan / menampilkan elemen */
+.hidden { display: none !important; }
+
+/* Ukuran ikon SVG */
+.dt-ico    { width: 16px; height: 16px; }
+.dt-ico-sm { width: 14px; height: 14px; }
+.dt-ico-md { width: 20px; height: 20px; }
+.dt-ico-lg { width: 24px; height: 24px; }
+.dt-ico-xl { width: 28px; height: 28px; }
+
+/* ---------- HEADER ---------- */
+.dt-header {
+    position: relative;
+    overflow: hidden;
+    color: #ffffff;
+    padding: 1rem 0 2.25rem;
+    background:
+        radial-gradient(circle at 15% 10%, rgba(94, 234, 212, 0.3), transparent 45%),
+        linear-gradient(135deg, var(--sea-bright) 0%, var(--sea-mid) 55%, var(--sea-deep) 100%);
+    box-shadow: 0 10px 24px -12px rgba(5, 46, 74, 0.5);
+    animation: dtHeaderIn 0.7s ease-out both;
+}
+
+@keyframes dtHeaderIn {
+    from { opacity: 0; transform: translateY(-16px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.dt-header-inner {
+    position: relative;
+    z-index: 3;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.dt-header-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    min-width: 0;
+}
+
+.dt-header-icon {
+    padding: 0.55rem;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(4px);
+    animation: dtFloat 5s ease-in-out infinite;
+}
+
+@keyframes dtFloat {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-5px); }
+}
+
+.dt-header-title {
+    font-size: 1.25rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+}
+
+.dt-header-sub {
+    margin-top: 2px;
+    font-size: 0.8125rem;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.dt-bubbles {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+}
+
+.dt-bubbles span {
+    position: absolute;
+    bottom: -20px;
+    left: var(--x);
+    width: var(--s);
+    height: var(--s);
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.75), rgba(255, 255, 255, 0.1));
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    animation: dtBubble var(--d) var(--delay) linear infinite;
+}
+
+@keyframes dtBubble {
+    0%   { transform: translateY(0) translateX(0); opacity: 0; }
+    15%  { opacity: 1; }
+    100% { transform: translateY(-120px) translateX(12px); opacity: 0; }
+}
+
+.dt-waves {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 30px;
+    z-index: 2;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.dt-wave {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 200%;
+    height: 100%;
+}
+
+.dt-wave-back  { fill: rgba(255, 255, 255, 0.18); animation: dtWave 10s linear infinite; }
+.dt-wave-front { fill: rgba(255, 255, 255, 0.3); height: 70%; animation: dtWave 6s linear infinite reverse; }
+
+@keyframes dtWave {
+    from { transform: translateX(0); }
+    to   { transform: translateX(-50%); }
+}
+
+/* Tombol keluar di header */
+.dt-logout {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.45rem 0.9rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.16);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    border-radius: 10px;
+    transition: background-color 0.2s, border-color 0.2s;
+}
+
+.dt-logout:hover {
+    background: rgba(255, 255, 255, 0.28);
+    border-color: rgba(255, 255, 255, 0.6);
+}
+
+.dt-logout:focus-visible {
+    outline: 2px solid #ffffff;
+    outline-offset: 2px;
+}
+
+/* ---------- KONTEN UTAMA ---------- */
+.dt-main {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1.75rem 1.5rem 2rem;
+    flex-grow: 1;
+}
+
+.dt-title-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.dt-title-row h2 {
+    font-size: 1.6rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+}
+
+.dt-title-row p {
+    margin-top: 4px;
+    font-size: 0.875rem;
+    color: var(--muted);
+}
+
+/* ---------- LANGKAH 1-2-3 ---------- */
+.dt-steps {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+}
+
+.dt-step {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #8aa3b3;
+}
+
+.dt-step-num {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    background: #dbe9f0;
+    color: var(--muted);
+}
+
+.dt-step.is-active { color: var(--ink); }
+.dt-step.is-active .dt-step-num { background: var(--sea-mid); color: #ffffff; }
+
+/* ---------- GRID DAN KARTU ---------- */
+.dt-grid {
+    display: grid;
+    grid-template-columns: 7fr 5fr;
+    gap: 1.25rem;
+}
+
+.dt-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    background: #ffffff;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 1px 3px rgba(5, 46, 74, 0.06);
+}
+
+.dt-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.25rem;
+}
+
+.dt-card-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--ink);
+}
+
+.dt-card-desc {
+    font-size: 0.75rem;
+    color: var(--subtle);
+    margin-bottom: 1rem;
+}
+
+.dt-chip {
+    padding: 0.25rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--muted);
+    background: #f1f7fa;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    transition: background-color 0.2s;
+}
+
+button.dt-chip:hover { background: #e4eff5; }
+
+.dt-chip-teal {
+    color: var(--sea-mid);
+    background: #e4f3f9;
+    border-color: #cfe5ee;
+    font-size: 0.6875rem;
+}
+
+/* ---------- AREA UNGGAH GAMBAR ---------- */
+.dt-drop {
+    position: relative;
+    width: 100%;
+    height: 16rem;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: #f3f8fb;
+    border: 2px dashed var(--line-strong);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: border-color 0.2s, background-color 0.2s;
+}
+
+.dt-drop:hover {
+    border-color: var(--sea-bright);
+    background: #eef7fb;
+}
+
+.dt-drop img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+#previewImg {
+    position: absolute;
+    inset: 0;
+}
+
+.dt-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 1.5rem;
+}
+
+.dt-placeholder-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 0.75rem;
+    background: #dbe9f0;
+    color: #7a93a3;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.dt-drop:hover .dt-placeholder-icon { background: #d3eaf3; color: var(--sea-mid); }
+
+.dt-placeholder strong {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #36566b;
+}
+
+.dt-drop:hover .dt-placeholder strong { color: var(--sea-mid); }
+
+.dt-placeholder span {
+    margin-top: 4px;
+    font-size: 0.75rem;
+    color: var(--subtle);
+}
+
+.dt-preview-badge {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.25rem 0.6rem;
+    font-size: 0.75rem;
+    color: #ffffff;
+    background: rgba(5, 46, 74, 0.65);
+    backdrop-filter: blur(6px);
+    border-radius: 6px;
+}
+
+/* ---------- INFO FILE ---------- */
+.dt-fileinfo {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 1rem;
+    padding: 0.75rem;
+    overflow: hidden;
+    background: #f6fafc;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+}
+
+.dt-fileinfo-icon {
+    padding: 0.5rem;
+    border-radius: 8px;
+    background: #e4eef4;
+    color: var(--muted);
+    flex-shrink: 0;
+}
+
+.dt-fileinfo-text { min-width: 0; }
+
+.dt-fileinfo-name {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #1f3b4d;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.dt-fileinfo-meta {
+    font-size: 0.6875rem;
+    color: var(--subtle);
+}
+
+/* ---------- PESAN ERROR ---------- */
+.dt-error {
+    margin-top: 1rem;
+    padding: 0.75rem;
+    font-size: 0.75rem;
+    color: #b91c1c;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 12px;
+}
+
+/* ---------- TOMBOL ---------- */
+.dt-actions {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 1rem;
+}
+
+.dt-btn {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.65rem 1rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+}
+
+.dt-btn:focus-visible {
+    outline: 3px solid rgba(18, 150, 196, 0.35);
+    outline-offset: 2px;
+}
+
+.dt-btn-outline {
+    color: #36566b;
+    background: #ffffff;
+    border-color: var(--line-strong);
+}
+
+.dt-btn-outline:hover {
+    color: var(--sea-mid);
+    background: #eef7fb;
+    border-color: var(--sea-bright);
+}
+
+.dt-btn-primary {
+    color: #ffffff;
+    background: var(--sea-mid);
+    border-color: var(--sea-mid);
+}
+
+.dt-btn-primary:hover {
+    background: var(--sea-deep);
+    border-color: var(--sea-deep);
+}
+
+.dt-btn:disabled,
+.dt-btn.is-disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+}
+
+.dt-card-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-top: 1rem;
+    padding-top: 0.75rem;
+    font-size: 0.6875rem;
+    color: var(--subtle);
+    border-top: 1px solid var(--line);
+}
+
+/* ---------- HASIL DETEKSI ---------- */
+.dt-banner {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+    padding: 0.875rem;
+    border: 1px solid;
+    border-radius: 12px;
+}
+
+.dt-banner-icon {
+    width: 24px;
+    height: 24px;
+    margin-top: 2px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    flex-shrink: 0;
+}
+
+.dt-banner h4 { font-size: 0.875rem; font-weight: 700; }
+.dt-banner p  { margin-top: 2px; font-size: 0.6875rem; }
+
+.dt-banner.is-fresh { background: #eaf7f4; border-color: #bfe5dc; }
+.dt-banner.is-fresh .dt-banner-icon { background: #14a38b; }
+.dt-banner.is-fresh h4 { color: #0f5f55; }
+.dt-banner.is-fresh p  { color: #0f766e; }
+
+.dt-banner.is-stale { background: #fff4e8; border-color: #fbd5a5; }
+.dt-banner.is-stale .dt-banner-icon { background: #f97316; }
+.dt-banner.is-stale h4 { color: #8a3f0a; }
+.dt-banner.is-stale p  { color: #b45309; }
+
+.dt-warning {
+    margin-bottom: 1.25rem;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.6875rem;
+    color: #92400e;
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    border-radius: 8px;
+}
+
+.dt-scores {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+}
+
+.dt-score {
+    padding: 0.875rem;
+    background: #f6fafc;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+}
+
+.dt-score-label {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-bottom: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--muted);
+}
+
+.dt-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.dt-dot-fresh { background: #14a38b; }
+.dt-dot-stale { background: #f59e0b; }
+
+.dt-score-value {
+    font-size: 1.9rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: #36566b;
+    font-variant-numeric: tabular-nums;
+}
+
+.dt-score-value small {
+    font-size: 1.1rem;
+    font-weight: 700;
+}
+
+.dt-score.is-fresh { background: #eaf7f4; border-color: #bfe5dc; }
+.dt-score.is-fresh .dt-score-label { color: #0f5f55; }
+.dt-score.is-fresh .dt-score-value { color: #0b4a42; }
+
+.dt-score.is-stale { background: #fff4e8; border-color: #fbd5a5; }
+.dt-score.is-stale .dt-score-label { color: #8a3f0a; }
+.dt-score.is-stale .dt-score-value { color: #6e3008; }
+
+/* ---------- KONDISI KOSONG ---------- */
+.dt-empty {
+    margin: auto 0;
+    padding: 3rem 1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    background: #f8fbfd;
+    border: 1px dashed var(--line-strong);
+    border-radius: 12px;
+}
+
+.dt-empty-icon {
+    width: 56px;
+    height: 56px;
+    margin-bottom: 0.75rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #e8f1f6;
+    color: #9bb2c0;
+}
+
+.dt-empty h4 { font-size: 0.875rem; font-weight: 700; color: #36566b; }
+.dt-empty p  { margin-top: 4px; max-width: 20rem; font-size: 0.75rem; color: var(--subtle); }
+
+.dt-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    margin-top: 1.5rem;
+    padding-top: 0.75rem;
+    font-size: 0.6875rem;
+    line-height: 1.5;
+    color: var(--subtle);
+    border-top: 1px solid var(--line);
+}
+
+.dt-note svg { margin-top: 2px; }
+
+/* ---------- TIPS ---------- */
+.dt-tips {
+    margin-top: 1.5rem;
+    padding: 1.5rem;
+    background: #ffffff;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(5, 46, 74, 0.06);
+}
+
+.dt-tips > h4 {
+    margin-bottom: 1rem;
+    font-size: 0.9375rem;
+    font-weight: 700;
+}
+
+.dt-tips-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+}
+
+.dt-tip {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.875rem;
+    background: #f6fafc;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+}
+
+.dt-tip-icon {
+    padding: 0.5rem;
+    border-radius: 8px;
+    background: #e4f3f9;
+    color: var(--sea-mid);
+    flex-shrink: 0;
+}
+
+.dt-tip h5 { font-size: 0.75rem; font-weight: 700; color: #1f3b4d; }
+.dt-tip p  { margin-top: 2px; font-size: 0.6875rem; line-height: 1.5; color: var(--subtle); }
+
+/* ---------- FOOTER ---------- */
+.dt-footer {
+    margin-top: 2rem;
+    padding: 1rem;
+    text-align: center;
+    font-size: 0.75rem;
+    color: var(--subtle);
+    background: #ffffff;
+    border-top: 1px solid var(--line);
+}
+
+/* ---------- JENDELA KAMERA ---------- */
+.dt-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background: rgba(5, 46, 74, 0.65);
+    backdrop-filter: blur(4px);
+}
+
+.dt-modal.flex { display: flex; }
+
+.dt-modal-card {
+    width: 100%;
+    max-width: 36rem;
+    max-height: 96vh;
+    overflow-y: auto;
+    padding: 1.25rem;
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 30px 60px -20px rgba(5, 46, 74, 0.5);
+}
+
+.dt-modal-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+}
+
+.dt-modal-head h3 { font-size: 1rem; font-weight: 800; }
+
+.dt-close {
+    padding: 0 0.25rem;
+    font-size: 1.6rem;
+    line-height: 1;
+    color: #9bb2c0;
+    background: transparent;
+    border: none;
+    transition: color 0.2s;
+}
+
+.dt-close:hover { color: #dc2626; }
+
+.dt-cam-frame {
+    position: relative;
+    width: min(100%, 56vh);
+    aspect-ratio: 1 / 1;
+    margin: 0 auto;
+    overflow: hidden;
+    background: #000000;
+    border-radius: 12px;
+}
+
+.dt-cam-frame video {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.dt-cam-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+
+.dt-cam-ring {
+    position: absolute;
+    left: 20%;
+    top: 20%;
+    width: 60%;
+    height: 60%;
+    border-radius: 50%;
+    border: 4px dashed rgba(255, 255, 255, 0.9);
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.38);
+}
+
+.dt-cam-status {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    max-width: 92%;
+    padding: 0.25rem 0.75rem;
+    overflow: hidden;
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    color: #ffffff;
+    border-radius: 999px;
+}
+
+.dt-cam-status.is-gray  { background: #334155; }
+.dt-cam-status.is-red   { background: #dc2626; }
+.dt-cam-status.is-amber { background: #d97706; }
+.dt-cam-status.is-green { background: #059669; }
+
+.dt-cam-hint {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 12px;
+    padding: 0 0.5rem;
+    text-align: center;
+    font-size: 0.6875rem;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.dt-zoom { margin-top: 0.75rem; }
+
+.dt-zoom label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    color: var(--muted);
+}
+
+.dt-zoom input[type="range"] {
+    width: 100%;
+    accent-color: var(--sea-mid);
+}
+
+.dt-cam-tips {
+    margin-top: 0.75rem;
+    padding-left: 1rem;
+    font-size: 0.6875rem;
+    line-height: 1.6;
+    color: var(--muted);
+}
+
+.dt-modal-actions {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 1rem;
+}
+
+/* ---------- LAYAR KECIL ---------- */
+@media (max-width: 991px) {
+    .dt-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 767px) {
+    .dt-tips-grid { grid-template-columns: 1fr; }
+    .dt-header-sub { display: none; }
+}
+
+@media (max-width: 640px) {
+    .dt-header-inner,
+    .dt-main { padding-left: 1rem; padding-right: 1rem; }
+    .dt-header-title { font-size: 1.1rem; }
+    .dt-title-row h2 { font-size: 1.35rem; }
+    .dt-card, .dt-tips { padding: 1.1rem; }
+    .dt-drop { height: 20rem; }
+    .dt-actions,
+    .dt-modal-actions { flex-direction: column; }
+    .dt-steps { gap: 0.9rem; }
+    .dt-card-foot span:last-child { display: none; }
+}
+
+@media (min-width: 641px) {
+    .dt-drop { height: 20rem; }
+}
+
+
+/* ==========================================
+   MODE 1 LAYAR (LAPTOP / DESKTOP)
+   Semua komponen muat dalam satu layar tanpa scroll.
+   Di HP / tablet / layar pendek tetap bisa di-scroll seperti biasa.
+   ========================================== */
+@media (min-width: 992px) and (min-height: 600px) {
+
+    body.dt-body {
+        height: 100vh;
+        height: 100dvh;
+        overflow: hidden;
+    }
+
+    /* Header diringkas */
+    .dt-header { padding: 0.6rem 0 1.6rem; }
+    .dt-header-icon { padding: 0.4rem; }
+    .dt-header-title { font-size: 1.1rem; }
+    .dt-header-sub { font-size: 0.75rem; }
+    .dt-waves { height: 20px; }
+
+    /* Konten utama mengisi sisa tinggi layar */
+    .dt-main {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        min-height: 0;
+        padding-top: 0.9rem;
+        padding-bottom: 0.6rem;
+    }
+
+    .dt-title-row { margin-bottom: 0.75rem; gap: 0.5rem 1rem; }
+    .dt-title-row h2 { font-size: 1.2rem; }
+    .dt-title-row p { margin-top: 2px; font-size: 0.78rem; }
+
+    /* Dua kartu berdampingan mengisi ruang yang tersedia */
+    .dt-grid {
+        flex: 1;
+        min-height: 0;
+        grid-template-rows: minmax(0, 1fr);
+        gap: 1rem;
+    }
+
+    .dt-card {
+        min-height: 0;
+        padding: 1rem 1.15rem;
+        overflow-y: auto;
+    }
+
+    .dt-card > div:first-child {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        min-height: 0;
+    }
+
+    .dt-card-desc { margin-bottom: 0.6rem !important; }
+    .dt-card-title { font-size: 1rem; }
+
+    /* Kartu kiri: area gambar melebar, info file + tombol dalam satu baris */
+    #uploadForm {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-rows: minmax(0, 1fr);
+        column-gap: 0.75rem;
+        flex: 1;
+        min-height: 0;
+    }
+
+    #uploadForm .dt-drop {
+        grid-column: 1 / -1;
+        order: 1;
+        height: auto;
+        min-height: 0;
+    }
+
+    #uploadForm .dt-error {
+        grid-column: 1 / -1;
+        order: 2;
+        margin-top: 0.6rem;
+        padding: 0.5rem 0.75rem;
+    }
+
+    #uploadForm .dt-fileinfo {
+        order: 3;
+        margin-top: 0.6rem;
+        padding: 0.45rem 0.65rem;
+    }
+
+    #uploadForm .dt-actions {
+        order: 4;
+        margin-top: 0.6rem;
+        gap: 0.5rem;
+    }
+
+    #uploadForm .dt-btn {
+        flex: none;
+        padding: 0.5rem 0.8rem;
+        font-size: 0.78rem;
+    }
+
+    .dt-fileinfo-icon { padding: 0.35rem; }
+
+    .dt-card-foot {
+        margin-top: 0.5rem;
+        padding-top: 0.4rem;
+    }
+
+    /* Kartu kanan: lebih ringkas */
+    .dt-banner { margin-bottom: 0.75rem; padding: 0.65rem 0.75rem; }
+    .dt-warning { margin-bottom: 0.75rem; padding: 0.4rem 0.65rem; }
+    .dt-scores { margin-bottom: 0.5rem; gap: 0.6rem; }
+    .dt-score { padding: 0.65rem 0.75rem; }
+    .dt-score-value { font-size: 1.6rem; }
+    .dt-empty { padding: 1.25rem 1rem; flex: 1; justify-content: center; }
+    .dt-empty-icon { width: 48px; height: 48px; margin-bottom: 0.5rem; }
+    .dt-note { margin-top: 0.6rem; padding-top: 0.5rem; }
+
+    /* Tips diringkas jadi satu baris */
+    .dt-tips {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-top: 0.75rem;
+        padding: 0.6rem 1rem;
+    }
+
+    .dt-tips > h4 {
+        margin: 0;
+        width: 8.5rem;
+        flex-shrink: 0;
+        font-size: 0.8125rem;
+        line-height: 1.3;
+    }
+
+    .dt-tips-grid { flex: 1; gap: 0.6rem; }
+    .dt-tip { padding: 0.5rem 0.65rem; gap: 0.5rem; align-items: center; }
+    .dt-tip-icon { padding: 0.35rem; }
+    .dt-tips .dt-ico-md { width: 18px; height: 18px; }
+    .dt-tip h5 { font-size: 0.75rem; }
+    .dt-tip p {
+        margin-top: 1px;
+        font-size: 0.6875rem;
+        line-height: 1.35;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    /* Footer tipis */
+    .dt-footer { margin-top: 0; padding: 0.45rem 1rem; }
+}
+
+
+/* ---------- DIAGRAM DONAT HASIL DETEKSI ---------- */
+.dt-result-row {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    margin-bottom: 1.5rem;
+}
+
+.dt-result-row .dt-scores {
+    flex: 1;
+    min-width: 0;
+    grid-template-columns: 1fr;
+    margin-bottom: 0;
+}
+
+.dt-donut {
+    position: relative;
+    width: 150px;
+    height: 150px;
+    flex-shrink: 0;
+}
+
+.dt-donut svg {
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
+}
+
+.dt-donut circle {
+    fill: none;
+    stroke-width: 14;
+}
+
+.dt-donut-track { stroke: #e8f1f6; }
+.dt-donut-fresh { stroke: #14a38b; }
+.dt-donut-stale { stroke: #f59e0b; }
+
+.dt-donut-arc {
+    animation: dtDraw 1s ease-out both;
+}
+
+.dt-donut-stale { animation-delay: 0.25s; }
+
+@keyframes dtDraw {
+    from { stroke-dasharray: 0 100; }
+}
+
+.dt-donut-center {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+.dt-donut-center strong {
+    font-size: 1.6rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+}
+
+.dt-donut-center strong small {
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+.dt-donut-center span {
+    margin-top: 4px;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    color: var(--muted);
+}
+
+@media (max-width: 480px) {
+    .dt-result-row { flex-direction: column; }
+    .dt-result-row .dt-scores { width: 100%; grid-template-columns: 1fr 1fr; }
+}
+
+@media (min-width: 992px) and (min-height: 600px) {
+    .dt-result-row { gap: 1rem; margin-bottom: 0.5rem; }
+    .dt-result-row .dt-scores { gap: 0.5rem; }
+    .dt-donut { width: 118px; height: 118px; }
+    .dt-donut-center strong { font-size: 1.3rem; }
+    .dt-donut-center span { font-size: 0.625rem; margin-top: 2px; }
+}
+
+/* Hormati pengguna yang mematikan animasi di perangkatnya */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+
+/* ==========================================================
+   TAMBAHAN KHUSUS TAMPILAN HP (MOBILE)
+   Hanya aktif di layar <= 640px, tampilan laptop tidak berubah.
+   Harus tetap berada di paling bawah file ini.
+   ========================================================== */
+
+@media (max-width: 640px) {
+
+    /* Background fixed sering patah-patah di HP */
+    body.dt-body {
+        background-attachment: scroll;
+        font-size: 14px;
+    }
+
+    /* Hilangkan kedip abu-abu saat disentuh */
+    button, label, .dt-drop {
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    /* ---------- HEADER ---------- */
+    .dt-header {
+        padding: 0.75rem 0 1.75rem;
+    }
+
+    .dt-header-inner {
+        gap: 0.6rem;
+    }
+
+    .dt-header-left {
+        gap: 0.6rem;
+        flex: 1;
+    }
+
+    .dt-header-icon {
+        padding: 0.4rem;
+        border-radius: 10px;
+    }
+
+    .dt-header-icon .dt-ico-lg,
+    .dt-header-icon svg {
+        width: 20px;
+        height: 20px;
+    }
+
+    .dt-header-title {
+        font-size: 1rem;
+        line-height: 1.25;
+    }
+
+    .dt-logout {
+        padding: 0.5rem 0.75rem;
+        min-height: 40px;
+        font-size: 0.75rem;
+        flex-shrink: 0;
+    }
+
+    .dt-waves {
+        height: 20px;
+    }
+
+    .dt-bubbles span:nth-child(n+6) {
+        display: none;
+    }
+
+    /* ---------- KONTEN ---------- */
+    .dt-main {
+        padding: 1.1rem 0.9rem 1.25rem;
+    }
+
+    .dt-title-row {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.9rem;
+        margin-bottom: 1.1rem;
+    }
+
+    .dt-title-row h2 {
+        font-size: 1.3rem;
+    }
+
+    .dt-title-row p {
+        font-size: 0.8125rem;
+        line-height: 1.5;
+    }
+
+    /* Langkah 1-2-3 dibuat rata, satu baris penuh */
+    .dt-steps {
+        justify-content: space-between;
+        gap: 0.4rem;
+        padding: 0.6rem 0.75rem;
+        font-size: 0.75rem;
+        background: #ffffff;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+    }
+
+    .dt-step {
+        gap: 0.35rem;
+        white-space: nowrap;
+    }
+
+    .dt-step-num {
+        width: 22px;
+        height: 22px;
+        font-size: 0.6875rem;
+    }
+
+    /* ---------- KARTU ---------- */
+    .dt-grid {
+        gap: 1rem;
+    }
+
+    .dt-card,
+    .dt-tips {
+        padding: 1rem;
+        border-radius: 14px;
+    }
+
+    .dt-card-head {
+        flex-wrap: wrap;
+    }
+
+    .dt-card-title {
+        font-size: 1rem;
+    }
+
+    .dt-card-desc {
+        font-size: 0.78rem;
+        line-height: 1.5;
+    }
+
+    /* ---------- AREA UNGGAH GAMBAR ---------- */
+    .dt-drop {
+        height: min(78vw, 17rem);
+        min-height: 13rem;
+        border-radius: 14px;
+    }
+
+    .dt-placeholder {
+        padding: 1rem;
+    }
+
+    .dt-placeholder strong {
+        font-size: 0.9rem;
+    }
+
+    .dt-placeholder span {
+        font-size: 0.75rem;
+        line-height: 1.4;
+    }
+
+    .dt-preview-badge {
+        top: 8px;
+        left: 8px;
+    }
+
+    /* Info file */
+    .dt-fileinfo {
+        padding: 0.65rem;
+        margin-top: 0.85rem;
+    }
+
+    .dt-fileinfo-name {
+        font-size: 0.8125rem;
+    }
+
+    .dt-fileinfo-meta {
+        font-size: 0.75rem;
+    }
+
+    /* ---------- TOMBOL (mudah ditekan jempol) ---------- */
+    .dt-actions,
+    .dt-modal-actions {
+        flex-direction: column;
+        gap: 0.6rem;
+    }
+
+    .dt-btn {
+        width: 100%;
+        min-height: 48px;
+        padding: 0.8rem 1rem;
+        font-size: 0.9rem;
+        border-radius: 12px;
+    }
+
+    .dt-btn:active {
+        transform: scale(0.98);
+    }
+
+    .dt-card-foot {
+        flex-wrap: wrap;
+        gap: 0.4rem;
+        font-size: 0.75rem;
+    }
+
+    /* ---------- HASIL DETEKSI ---------- */
+    .dt-banner {
+        padding: 0.8rem;
+        gap: 0.65rem;
+    }
+
+    .dt-banner h4 {
+        font-size: 0.9rem;
+    }
+
+    .dt-banner p {
+        font-size: 0.75rem;
+        line-height: 1.45;
+    }
+
+    .dt-warning {
+        font-size: 0.75rem;
+        line-height: 1.45;
+    }
+
+    .dt-result-row {
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1.25rem;
+    }
+
+    .dt-donut {
+        width: 150px;
+        height: 150px;
+    }
+
+    .dt-result-row .dt-scores {
+        width: 100%;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.6rem;
+    }
+
+    .dt-score {
+        padding: 0.75rem;
+    }
+
+    .dt-score-label {
+        font-size: 0.75rem;
+    }
+
+    .dt-score-value {
+        font-size: 1.6rem;
+    }
+
+    .dt-scores {
+        gap: 0.6rem;
+    }
+
+    .dt-empty {
+        padding: 2rem 1rem;
+    }
+
+    .dt-note {
+        font-size: 0.75rem;
+    }
+
+    /* ---------- TIPS ---------- */
+    .dt-tips {
+        margin-top: 1rem;
+    }
+
+    .dt-tips-grid {
+        grid-template-columns: 1fr;
+        gap: 0.65rem;
+    }
+
+    .dt-tip {
+        padding: 0.75rem;
+    }
+
+    .dt-tip h5 {
+        font-size: 0.8125rem;
+    }
+
+    .dt-tip p {
+        font-size: 0.75rem;
+    }
+
+    /* ---------- FOOTER ---------- */
+    .dt-footer {
+        margin-top: 1rem;
+        padding: 0.9rem 1rem calc(0.9rem + env(safe-area-inset-bottom, 0px));
+        font-size: 0.75rem;
+    }
+
+    /* ---------- JENDELA KAMERA (layar penuh seperti bottom sheet) ---------- */
+    .dt-modal {
+        align-items: flex-end;
+        padding: 0;
+    }
+
+    .dt-modal-card {
+        max-width: 100%;
+        max-height: 100vh;
+        max-height: 100dvh;
+        height: auto;
+        padding: 1rem 1rem calc(1rem + env(safe-area-inset-bottom, 0px));
+        border-radius: 18px 18px 0 0;
+    }
+
+    .dt-modal-head h3 {
+        font-size: 1rem;
+    }
+
+    .dt-close {
+        min-width: 44px;
+        min-height: 44px;
+        font-size: 1.9rem;
+    }
+
+    /* Bingkai kamera selebar layar, tetap persegi */
+    .dt-cam-frame {
+        width: 100%;
+        border-radius: 14px;
+    }
+
+    .dt-cam-status {
+        top: 10px;
+        font-size: 0.75rem;
+        padding: 0.3rem 0.7rem;
+    }
+
+    .dt-cam-hint {
+        bottom: 10px;
+        font-size: 0.75rem;
+    }
+
+    .dt-zoom label {
+        font-size: 0.8125rem;
+    }
+
+    .dt-zoom input[type="range"] {
+        height: 32px;
+    }
+
+    .dt-cam-tips {
+        font-size: 0.75rem;
+        line-height: 1.6;
+    }
+}
+
+/* Layar HP sangat kecil */
+@media (max-width: 380px) {
+    .dt-header-title {
+        font-size: 0.95rem;
+    }
+
+    .dt-step {
+        font-size: 0.6875rem;
+    }
+
+    .dt-result-row .dt-scores {
+        grid-template-columns: 1fr;
+    }
+
+    .dt-donut {
+        width: 135px;
+        height: 135px;
+    }
+}
+
+/* HP posisi landscape (layar pendek): kamera tidak terpotong */
+@media (max-width: 991px) and (orientation: landscape) and (max-height: 500px) {
+    .dt-cam-frame {
+        width: min(100%, 60vh);
+    }
+
+    .dt-modal {
+        align-items: center;
+        padding: 0.5rem;
+    }
+
+    .dt-modal-card {
+        border-radius: 16px;
+    }
+}
+
+/* Perangkat sentuh: matikan efek hover yang "menempel" */
+@media (hover: none) {
+    .dt-drop:hover {
+        border-color: var(--line-strong);
+        background: #f3f8fb;
+    }
+
+    .dt-drop:hover .dt-placeholder-icon {
+        background: #dbe9f0;
+        color: #7a93a3;
+    }
+
+    .dt-drop:hover .dt-placeholder strong {
+        color: #36566b;
+    }
+
+    .dt-btn-outline:hover {
+        color: #36566b;
+        background: #ffffff;
+        border-color: var(--line-strong);
+    }
+
+    .dt-btn-primary:hover {
+        background: var(--sea-mid);
+        border-color: var(--sea-mid);
+    }
+}
