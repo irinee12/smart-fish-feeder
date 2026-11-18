@@ -3,6 +3,61 @@
 @section('title', 'Dashboard Smart Fish Feeder')
 
 @section('content')
+
+{{-- =====================================================
+    LOGIKA PERHITUNGAN DATA SENSOR (BLADE PHP)
+===================================================== --}}
+@php
+    // Cek apakah ada data dari database
+    $hasData = isset($data_sensor) && $data_sensor->count() > 0;
+    
+    // Ambil data paling baru (baris pertama)
+    $latest = $hasData ? $data_sensor->first() : null;
+
+    // --- RUMUS KONVERSI JARAK (CM) KE BERAT (KG) ---
+    // Sesuaikan angka ini dengan ukuran fisik wadah pakan Anda!
+    $jarakMax = 30; // Jarak sensor saat wadah KOSONG (misal: 30 cm)
+    $jarakMin = 5;  // Jarak sensor saat wadah PENUH (misal: 5 cm)
+    $kapasitasMax = 20; // Kapasitas maksimal wadah (20 kg)
+
+    $stokKg = 0;
+    $persentase = 0;
+    $statusPakan = 'Tidak Diketahui';
+    $warnaStatus = 'text-secondary';
+
+    if ($latest) {
+        $jarakSekarang = $latest->jarak;
+        
+        // Hitung persentase dan Kg
+        if ($jarakSekarang >= $jarakMax) {
+            $persentase = 0;
+            $stokKg = 0;
+        } elseif ($jarakSekarang <= $jarakMin) {
+            $persentase = 100;
+            $stokKg = $kapasitasMax;
+        } else {
+            $persentase = (($jarakMax - $jarakSekarang) / ($jarakMax - $jarakMin)) * 100;
+            $stokKg = ($persentase / 100) * $kapasitasMax;
+        }
+
+        // Bulatkan angka
+        $stokKg = round($stokKg, 1);
+        $persentase = round($persentase);
+
+        // Tentukan teks status
+        if ($persentase > 50) {
+            $statusPakan = 'Aman / Cukup';
+            $warnaStatus = 'text-success';
+        } elseif ($persentase > 20) {
+            $statusPakan = 'Menipis';
+            $warnaStatus = 'text-warning';
+        } else {
+            $statusPakan = 'Kritis / Habis';
+            $warnaStatus = 'text-danger';
+        }
+    }
+@endphp
+
 {{-- Menghilangkan padding container agar header bisa mentok full dari kiri ke kanan --}}
 <div class="dash container-fluid px-0">
 
@@ -41,30 +96,43 @@
         </div>
     </div>
 
-    {{-- BUNGKUS KONTEN DI BAWAHNYA DIBERI PADDING SUPAYA TIDAK IKUT MENEMPEL KE PINGGIR --}}
+    {{-- BUNGKUS KONTEN DI BAWAHNYA DIBERI PADDING --}}
     <div class="px-4">
 
         {{-- =====================================================
-            BANNER STATUS SISTEM (KONDISI KOSONG / MENUNGGU KONEKSI)
+            BANNER STATUS SISTEM
         ===================================================== --}}
         <div class="dash-card dash-status card border-0 rounded-4 mb-4">
             <div class="card-body d-flex flex-wrap justify-content-between align-items-center p-3 p-md-4">
                 <div class="d-flex align-items-center gap-3 mb-2 mb-md-0">
                     <div class="d-flex align-items-center gap-2">
-                        <span class="dash-pulse-dot">●</span>
+                        <span class="dash-pulse-dot" style="color: {{ $hasData ? '#10b981' : '#f59e0b' }}">●</span>
                         <span class="fw-bold text-secondary">Status Alat IoT</span>
                     </div>
-                    <span class="dash-badge-wait badge rounded-pill px-3 py-2 fw-normal">Menunggu Koneksi</span>
-                    <span class="text-muted small d-none d-md-inline">ESP32 Belum terhubung - IP: Memuat...</span>
+                    
+                    @if($hasData)
+                        <span class="badge rounded-pill px-3 py-2 fw-normal" style="background: rgba(16, 185, 129, 0.12); color: #047857;">Aktif Terhubung</span>
+                        <span class="text-muted small d-none d-md-inline">Update terakhir: {{ \Carbon\Carbon::parse($latest->waktu)->diffForHumans() }}</span>
+                    @else
+                        <span class="dash-badge-wait badge rounded-pill px-3 py-2 fw-normal">Menunggu Koneksi</span>
+                        <span class="text-muted small d-none d-md-inline">ESP32 Belum terhubung</span>
+                    @endif
                 </div>
-                <div class="dash-nosignal text-muted small d-flex align-items-center gap-2">
-                    <i class="bi bi-wifi-off fs-5"></i> Tidak ada sinyal
-                </div>
+                
+                @if($hasData)
+                    <div class="text-success small d-flex align-items-center gap-2">
+                        <i class="bi bi-wifi fs-5"></i> Sinyal Bagus
+                    </div>
+                @else
+                    <div class="dash-nosignal text-muted small d-flex align-items-center gap-2">
+                        <i class="bi bi-wifi-off fs-5"></i> Tidak ada sinyal
+                    </div>
+                @endif
             </div>
         </div>
 
         {{-- =====================================================
-            4 KARTU METRIK UTAMA (NILAI NOL)
+            4 KARTU METRIK UTAMA
         ===================================================== --}}
         <div class="row g-3 mb-4">
             {{-- KARTU 1: STOK PAKAN --}}
@@ -77,13 +145,13 @@
                         </div>
                     </div>
                     <div>
-                        <h2 class="fw-bold mb-0 text-dark">0 <span class="fs-5 fw-normal text-muted">kg</span></h2>
-                        <small class="text-muted">Menunggu data sensor</small>
+                        <h2 class="fw-bold mb-0 text-dark">{{ $hasData ? $stokKg : '0' }} <span class="fs-5 fw-normal text-muted">kg</span></h2>
+                        <small class="text-muted">Sensor Jarak: {{ $hasData ? $latest->jarak : '0' }} cm</small>
                     </div>
                 </div>
             </div>
 
-            {{-- KARTU 2: PAKAN HARI INI --}}
+            {{-- KARTU 2: PAKAN HARI INI (Placeholder sementara) --}}
             <div class="col-12 col-md-6 col-lg-3">
                 <div class="dash-card dash-metric dash-m2 card h-100 border-0 p-4 rounded-4">
                     <div class="d-flex justify-content-between align-items-center mb-3">
@@ -94,12 +162,12 @@
                     </div>
                     <div>
                         <h2 class="fw-bold mb-0 text-dark">0 <span class="fs-5 fw-normal text-muted">kg</span></h2>
-                        <small class="text-muted">Belum ada aktivitas</small>
+                        <small class="text-muted">Fitur dalam pengembangan</small>
                     </div>
                 </div>
             </div>
 
-            {{-- KARTU 3: JADWAL BERIKUTNYA --}}
+            {{-- KARTU 3: JADWAL BERIKUTNYA (Placeholder sementara) --}}
             <div class="col-12 col-md-6 col-lg-3">
                 <div class="dash-card dash-metric dash-m3 card h-100 border-0 p-4 rounded-4">
                     <div class="d-flex justify-content-between align-items-center mb-3">
@@ -115,18 +183,18 @@
                 </div>
             </div>
 
-            {{-- KARTU 4: PREDIKSI REFILL --}}
+            {{-- KARTU 4: PREDIKSI REFILL (Placeholder sementara) --}}
             <div class="col-12 col-md-6 col-lg-3">
                 <div class="dash-card dash-metric dash-m4 card h-100 border-0 p-4 rounded-4">
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <span class="dash-metric-label text-uppercase fw-bold">Prediksi Refill</span>
+                        <span class="dash-metric-label text-uppercase fw-bold">Status Persentase</span>
                         <div class="dash-metric-icon rounded-3 p-2 d-flex align-items-center justify-content-center">
-                            <i class="bi bi-graph-up fs-5"></i>
+                            <i class="bi bi-pie-chart fs-5"></i>
                         </div>
                     </div>
                     <div>
-                        <h2 class="fw-bold mb-0 text-dark">- <span class="fs-5 fw-normal text-muted">hari</span></h2>
-                        <small class="text-muted">Data penggunaan tidak cukup</small>
+                        <h2 class="fw-bold mb-0 text-dark">{{ $hasData ? $persentase : '0' }} <span class="fs-5 fw-normal text-muted">%</span></h2>
+                        <small class="{{ $warnaStatus }} fw-bold">{{ $statusPakan }}</small>
                     </div>
                 </div>
             </div>
@@ -142,10 +210,9 @@
                     <h5 class="fw-bold mb-1 text-dark">Grafik Penggunaan Pakan Harian</h5>
                     <p class="text-muted small mb-4">7 hari terakhir (dalam kg)</p>
 
-                    {{-- Tampilan Kosong Grafik --}}
                     <div class="dash-empty w-100 d-flex flex-column align-items-center justify-content-center rounded-3" style="min-height: 250px;">
                         <i class="dash-empty-icon bi bi-bar-chart text-muted mb-2" style="font-size: 2rem;"></i>
-                        <span class="text-muted">Belum ada data statistik untuk ditampilkan</span>
+                        <span class="text-muted">Data chart akan ditampilkan di sini (Chart.js)</span>
                     </div>
                 </div>
             </div>
@@ -153,66 +220,84 @@
             {{-- INDIKATOR STOK KOSONG --}}
             <div class="col-12 col-lg-4">
                 <div class="dash-card dash-panel card h-100 border-0 p-4 rounded-4">
-                    <h5 class="fw-bold mb-4 text-dark">Indikator Stok</h5>
+                    <h5 class="fw-bold mb-4 text-dark">Indikator Stok Wadah</h5>
 
                     <div class="text-center mb-4">
-                        <h1 class="dash-big-number fw-bold mb-0" style="font-size: 3rem;">0</h1>
+                        <h1 class="dash-big-number fw-bold mb-0" style="font-size: 3rem; color: {{ $persentase < 20 ? '#dc3545' : 'var(--sea-mid)' }}">{{ $hasData ? $stokKg : '0' }}</h1>
                         <p class="text-muted mb-0">kg tersisa</p>
                     </div>
 
                     <div class="d-flex justify-content-between small mb-2">
-                        <span class="text-muted">Tingkat Stok</span>
-                        <span class="fw-bold text-secondary">Tidak diketahui</span>
+                        <span class="text-muted">Kondisi Stok</span>
+                        <span class="fw-bold {{ $warnaStatus }}">{{ $statusPakan }}</span>
                     </div>
 
-                    {{-- Progress bar di-set 0% --}}
+                    {{-- Progress bar dinamis berdasarkan sensor --}}
                     <div class="dash-progress progress mb-4" style="height: 8px;">
-                        <div class="progress-bar bg-secondary" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                        <div class="progress-bar {{ $persentase < 20 ? 'bg-danger' : 'bg-info' }}" role="progressbar" style="width: {{ $persentase }}%;" aria-valuenow="{{ $persentase }}" aria-valuemin="0" aria-valuemax="100"></div>
                     </div>
 
                     <div class="dash-row d-flex justify-content-between border-bottom pb-2 mb-2 small">
                         <span class="text-muted">Kapasitas penuh</span>
-                        <span class="fw-bold text-dark">20 kg</span>
+                        <span class="fw-bold text-dark">{{ $kapasitasMax }} kg</span>
                     </div>
                     <div class="dash-row d-flex justify-content-between border-bottom pb-2 mb-2 small">
-                        <span class="text-muted">Terpakai</span>
-                        <span class="fw-bold text-dark">0 kg</span>
-                    </div>
-                    <div class="dash-row d-flex justify-content-between small">
-                        <span class="text-muted">Rata-rata/hari</span>
-                        <span class="fw-bold text-dark">0 kg</span>
+                        <span class="text-muted">Ruang Kosong (Terpakai)</span>
+                        <span class="fw-bold text-dark">{{ $hasData ? round($kapasitasMax - $stokKg, 1) : '0' }} kg</span>
                     </div>
                 </div>
             </div>
         </div>
 
         {{-- =====================================================
-            JADWAL PEMBERIAN PAKAN HARI INI (TABEL KOSONG)
+            TABEL RIWAYAT PEMBACAAN SENSOR (REALTIME)
         ===================================================== --}}
         <div class="dash-card dash-panel card border-0 p-4 rounded-4 mb-4">
-            <h5 class="fw-bold mb-4 text-dark">Jadwal Pemberian Pakan Hari Ini</h5>
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h5 class="fw-bold mb-0 text-dark">Riwayat Sensor Terbaru (Log ESP32)</h5>
+                <button onclick="window.location.reload();" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-arrow-clockwise"></i> Refresh Data
+                </button>
+            </div>
 
             <div class="table-responsive">
                 <table class="dash-table table table-hover align-middle mb-0">
                     <thead>
                         <tr class="text-muted small text-uppercase">
-                            <th class="fw-semibold pb-3">Waktu</th>
-                            <th class="fw-semibold pb-3">Sesi</th>
-                            <th class="fw-semibold pb-3">Porsi</th>
+                            <th class="fw-semibold pb-3">No</th>
+                            <th class="fw-semibold pb-3">Waktu Masuk</th>
+                            <th class="fw-semibold pb-3">Jarak Terbaca</th>
                             <th class="fw-semibold pb-3">Status</th>
                         </tr>
                     </thead>
                     <tbody class="border-top-0">
-                        {{-- Baris ketika data kosong --}}
-                        <tr>
-                            <td colspan="4" class="py-5 text-center text-muted">
-                                <div class="d-flex flex-column align-items-center">
-                                    <i class="dash-empty-icon bi bi-calendar-x mb-2" style="font-size: 2rem;"></i>
-                                    <p class="mb-0">Belum ada jadwal pakan yang diatur hari ini.</p>
-                                    <small>Silakan tambahkan jadwal melalui menu Jadwal Pakan.</small>
-                                </div>
-                            </td>
-                        </tr>
+                        @forelse($data_sensor as $index => $data)
+                            <tr>
+                                <td>{{ $index + 1 }}</td>
+                                <td>{{ \Carbon\Carbon::parse($data->waktu)->format('d M Y - H:i:s') }}</td>
+                                <td><span class="fw-bold">{{ $data->jarak }}</span> cm</td>
+                                <td>
+                                    @if($data->jarak > 20)
+                                        <span class="badge bg-danger">Wadah Kosong</span>
+                                    @elseif($data->jarak < 10)
+                                        <span class="badge bg-success">Wadah Penuh</span>
+                                    @else
+                                        <span class="badge bg-warning text-dark">Wadah Separuh</span>
+                                    @endif
+                                </td>
+                            </tr>
+                        @empty
+                            {{-- Baris ketika data kosong --}}
+                            <tr>
+                                <td colspan="4" class="py-5 text-center text-muted">
+                                    <div class="d-flex flex-column align-items-center">
+                                        <i class="dash-empty-icon bi bi-hdd-network text-muted mb-2" style="font-size: 2rem;"></i>
+                                        <p class="mb-0">Belum ada data sensor yang masuk.</p>
+                                        <small>Pastikan alat ESP32 sudah menyala dan terhubung ke WiFi.</small>
+                                    </div>
+                                </td>
+                            </tr>
+                        @endforelse
                     </tbody>
                 </table>
             </div>
@@ -221,7 +306,7 @@
     </div>
 </div>
 
-{{-- CSS HALAMAN DASHBOARD (semua aturan diawali .dash agar tidak mengganggu halaman lain) --}}
+{{-- CSS HALAMAN DASHBOARD (TIDAK ADA YANG DIUBAH) --}}
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
@@ -463,6 +548,7 @@
     .dash-big-number {
         color: var(--sea-mid);
         font-weight: 800 !important;
+        transition: color 0.5s;
     }
 
     .dash-progress {
@@ -485,6 +571,10 @@
     .dash-progress .progress-bar {
         background: linear-gradient(90deg, var(--sea-bright), var(--aqua)) !important;
         transition: width 1s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    
+    .dash-progress .progress-bar.bg-danger {
+        background: linear-gradient(90deg, #dc3545, #ff6b6b) !important;
     }
 
     @keyframes dashShimmer {

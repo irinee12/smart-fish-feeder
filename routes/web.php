@@ -7,7 +7,7 @@ use App\Http\Controllers\JadwalController;
 use App\Http\Controllers\Penjaga2Controller;
 use App\Http\Controllers\RiwayatController;
 use App\Http\Controllers\PrediksiStokController;
-
+use App\Http\Controllers\DashboardController;
 
 // ======================================================
 // ROUTE AWAL
@@ -48,10 +48,9 @@ Route::middleware('auth')->group(function () {
 
     Route::middleware('role:penjaga1')->group(function () {
 
-        Route::get('/dashboard', function () {
-            return view('Dashboard');
-        })->name('dashboard');
-
+        // Route Dashboard memanggil DashboardController dan diberi nama 'dashboard'
+        Route::get('/dashboard', [DashboardController::class, 'index'])
+            ->name('dashboard');
 
         // Jadwal
         Route::get('/jadwal', [JadwalController::class, 'index'])
@@ -63,17 +62,14 @@ Route::middleware('auth')->group(function () {
         Route::delete('/jadwal/{id}', [JadwalController::class, 'destroy'])
             ->name('jadwal.destroy');
 
-
         // Stok
         Route::get('/stok', function () {
             return view('Stok');
         })->name('stok');
 
-
         // Prediksi refill
         Route::get('/prediksi', [PrediksiStokController::class, 'index'])
             ->name('prediksi');
-
 
         // Riwayat
         Route::get('/riwayat', [RiwayatController::class, 'index'])
