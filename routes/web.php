@@ -62,15 +62,38 @@ Route::middleware('auth')->group(function () {
         Route::delete('/jadwal/{id}', [JadwalController::class, 'destroy'])
             ->name('jadwal.destroy');
 
-        // Stok
-        Route::get('/stok', function () {
-            return view('Stok');
-        })->name('stok');
 
-        // Prediksi refill
-        Route::get('/prediksi', [PrediksiStokController::class, 'index'])
-            ->name('prediksi');
+Route::get('/stok', function () {
 
+    $data = \Illuminate\Support\Facades\DB::table('sensor_data')
+        ->latest('id')
+        ->first();
+
+    $jarakSensor = $data && isset($data->jarak)
+        ? (float) $data->jarak
+        : null;
+
+    $waktuData = $data->created_at
+        ?? $data->updated_at
+        ?? $data->waktu
+        ?? null;
+
+    $sensorTerhubung = $data
+        && $waktuData
+        && now()->diffInSeconds(
+            \Carbon\Carbon::parse($waktuData)
+        ) <= 30;
+
+    return view('Stok', [
+        'jarakSensor' => $jarakSensor,
+        'sensorTerhubung' => $sensorTerhubung,
+        'sensorData' => $data
+    ]);
+
+})->name('stok');
+
+ Route::get('/prediksi', [PrediksiStokController::class, 'index'])->name('prediksi.index');
+Route::post('/prediksi', [PrediksiStokController::class, 'update'])->name('prediksi.update');
         // Riwayat
         Route::get('/riwayat', [RiwayatController::class, 'index'])
             ->name('riwayat');

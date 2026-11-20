@@ -1,647 +1,789 @@
+
 @extends('layouts.app')
 
-@section('title', 'Prediksi Refill - Smart Fish Feeder')
+@section('title', 'Prediksi Refill Pakan Gudang - Smart Fish Feeder')
 
 @section('content')
 
-{{-- CSS TAMPILAN (dibawa langsung di dalam file ini) --}}
+@php
+    $nSma = (int) ($nSma ?? 7);
+    $stokAwalKg = $stokAwalKg ?? null;
+    $konsumsiSejakInput = (float) ($konsumsiSejakInput ?? 0);
+    $dataKonsumsi = collect($dataKonsumsi ?? []);
+
+    $fmt = fn($v, $d = 2) => number_format($v, $d, ',', '.');
+
+    // Persediaan tercatat berkurang saat pakan benar-benar digunakan
+    $stokKg = $stokAwalKg !== null
+        ? max((float) $stokAwalKg - ($konsumsiSejakInput / 1000), 0)
+        : null;
+
+    // Data konsumsi dalam gram
+    $vals = $dataKonsumsi->pluck('konsumsi')
+        ->map(fn($v) => (float) $v)
+        ->values()
+        ->all();
+
+    $rows = [];
+
+    foreach ($dataKonsumsi->values() as $i => $d) {
+        $awal = max(0, $i + 1 - $nSma);
+        $jumlahData = $i + 1 - $awal;
+
+        $sma = $jumlahData > 0
+            ? array_sum(array_slice($vals, $awal, $jumlahData)) / $jumlahData
+            : null;
+
+        $rows[] = [
+            'tanggal' => $d['tanggal'],
+            'konsumsi' => $vals[$i],
+            'ada_data' => $d['ada_data'] ?? true,
+            'sma' => $sma
+        ];
+    }
+
+    $rows = collect($rows);
+
+    // SMA terkini menggunakan data periode yang dipilih
+    $dataSma = $rows
+        ->where('ada_data', true)
+        ->take(-$nSma);
+
+    $smaTerkini = $dataSma->count() > 0
+        ? $dataSma->avg('konsumsi')
+        : null;
+
+    $smaKg = $smaTerkini !== null
+        ? $smaTerkini / 1000
+        : null;
+
+    // Total konsumsi hari ini
+    $konsumsiHariIni = $rows->last()['konsumsi'] ?? 0;
+
+    $konsumsiHariIniKg = $konsumsiHariIni / 1000;
+
+    // Estimasi ketahanan persediaan
+    $estimasiHari = ($stokKg !== null && $smaKg > 0)
+        ? $stokKg / $smaKg
+        : null;
+
+    // Status persediaan untuk informasi, bukan perintah pembelian
+    if ($stokKg === null) {
+        $status = 'Belum ada data stok';
+        $statusClass = 'secondary';
+        $statusIcon = 'bi-info-circle';
+    } elseif ($smaKg === null || $smaKg <= 0) {
+        $status = 'Menunggu data konsumsi';
+        $statusClass = 'secondary';
+        $statusIcon = 'bi-clock-history';
+    } elseif ($estimasiHari <= 3) {
+        $status = 'Persediaan terbatas';
+        $statusClass = 'danger';
+        $statusIcon = 'bi-exclamation-circle';
+    } elseif ($estimasiHari <= 7) {
+        $status = 'Persediaan mulai menipis';
+        $statusClass = 'warning';
+        $statusIcon = 'bi-exclamation-triangle';
+    } else {
+        $status = 'Persediaan mencukupi';
+        $statusClass = 'success';
+        $statusIcon = 'bi-check-circle';
+    }
+
+    $labels = $rows->pluck('tanggal')->values();
+    $aktual = $rows->pluck('konsumsi')->map(fn($v) => round($v / 1000, 3))->values();
+
+    $smaChart = $rows->pluck('sma')
+        ->map(fn($v) => $v !== null ? round($v / 1000, 3) : null)
+        ->values();
+@endphp
+
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
-
-/* ==========================================
-   PREDIKSI REFILL - TAMPILAN (TEMA LAUT, VERSI TENANG)
-   Simpan di: public/css/prediksi.css
-   ========================================== */
 
 .prediction-page {
     --sea-deep: #052e4a;
     --sea-mid: #0a6a8f;
     --sea-bright: #1296c4;
-    --aqua: #5eead4;
     --ink: #0f2a3a;
-    --muted: #5b7384;
-    --line: #d3e4ec;
-
-    min-height: 100vh;
-    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
-    background: linear-gradient(160deg, #e8f6fa 0%, #f4fafc 50%, #e3f1f7 100%);
+    --muted: #668091;
+    font-family: 'Plus Jakarta Sans', sans-serif;
     color: var(--ink);
-    padding-bottom: 1rem;
+    background: linear-gradient(160deg,#e8f6fa,#f7fbfd,#e3f1f7);
+    min-height: 100vh;
+    padding-bottom: 30px;
 }
 
-@keyframes prdFloat {
-    0%, 100% { transform: translateY(0); }
-    50%      { transform: translateY(-5px); }
-}
-
-/* ---------- HEADER FULL LEBAR ---------- */
 .prediction-hero {
     position: relative;
-    width: 100%;
     overflow: hidden;
-    display: flex;
-    align-items: center;
-    padding: 1rem 1.5rem 2.25rem;
-    margin-bottom: 1.5rem;
-    color: #ffffff;
+    padding: 30px 32px;
+    margin-bottom: 25px;
+    color: white;
     background:
-        radial-gradient(circle at 15% 10%, rgba(94, 234, 212, 0.3), transparent 45%),
-        linear-gradient(135deg, var(--sea-bright) 0%, var(--sea-mid) 55%, var(--sea-deep) 100%);
-    box-shadow: 0 10px 24px -12px rgba(5, 46, 74, 0.5);
-    animation: prdHeroIn 0.7s ease-out both;
+        radial-gradient(circle at 15% 10%,rgba(94,234,212,.3),transparent 45%),
+        linear-gradient(135deg,#1296c4,#0a6a8f 55%,#052e4a);
+    box-shadow: 0 10px 24px -12px rgba(5,46,74,.5);
 }
 
-@keyframes prdHeroIn {
-    from { opacity: 0; transform: translateY(-16px); }
-    to   { opacity: 1; transform: translateY(0); }
-}
-
-.prediction-hero-inner {
+.hero-content {
     position: relative;
-    z-index: 3;
+    z-index: 2;
     display: flex;
     align-items: center;
-    gap: 1rem;
-}
-
-.prediction-hero-icon {
-    padding: 0.5rem 0.65rem;
-    border-radius: 12px;
-    background: rgba(255, 255, 255, 0.2);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    backdrop-filter: blur(4px);
-    font-size: 1.25rem;
-    line-height: 1;
-    animation: prdFloat 5s ease-in-out infinite;
-}
-
-.prediction-hero h4 {
-    margin: 0;
-    font-weight: 800;
-    letter-spacing: -0.02em;
-}
-
-.prediction-hero p {
-    margin: 0;
-    font-size: 0.875rem;
-    color: rgba(255, 255, 255, 0.8);
-}
-
-.prediction-bubbles {
-    position: absolute;
-    inset: 0;
-    z-index: 1;
-    pointer-events: none;
-}
-
-.prediction-bubbles span {
-    position: absolute;
-    bottom: -20px;
-    left: var(--x);
-    width: var(--s);
-    height: var(--s);
-    border-radius: 50%;
-    background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.75), rgba(255, 255, 255, 0.1));
-    border: 1px solid rgba(255, 255, 255, 0.4);
-    animation: prdBubble var(--d) var(--delay) linear infinite;
-}
-
-@keyframes prdBubble {
-    0%   { transform: translateY(0) translateX(0); opacity: 0; }
-    15%  { opacity: 1; }
-    100% { transform: translateY(-120px) translateX(12px); opacity: 0; }
-}
-
-.prediction-waves {
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    height: 30px;
-    z-index: 2;
-    overflow: hidden;
-    pointer-events: none;
-}
-
-.prediction-wave {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 200%;
-    height: 100%;
-}
-
-.prediction-wave-back {
-    fill: rgba(255, 255, 255, 0.18);
-    animation: prdWave 10s linear infinite;
-}
-
-.prediction-wave-front {
-    fill: rgba(255, 255, 255, 0.3);
-    height: 70%;
-    animation: prdWave 6s linear infinite reverse;
-}
-
-@keyframes prdWave {
-    from { transform: translateX(0); }
-    to   { transform: translateX(-50%); }
-}
-
-/* ---------- WADAH KONTEN ---------- */
-.prediction-container {
-    padding: 0 1.5rem 1rem;
-}
-
-/* ---------- STATUS PREDIKSI ---------- */
-.prediction-status-card {
-    background: #eef7fb;
-    border: 1px solid #cfe5ee;
-    border-radius: 12px;
-    padding: 18px 22px;
-    margin-bottom: 20px;
-}
-
-.prediction-status-card h5 {
-    font-weight: 700;
-    color: var(--sea-mid);
-    margin-bottom: 6px;
-}
-
-.prediction-status-card p {
-    color: #36566b;
-    margin-bottom: 0;
-}
-
-/* ---------- 3 KARTU RINGKASAN ---------- */
-.prediction-metrics-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
     gap: 16px;
-    margin-bottom: 20px;
 }
 
-.prediction-metric-card {
-    background: #ffffff;
-    border: 1px solid #e1ecf2;
-    border-radius: 12px;
-    padding: 20px 22px;
-    box-shadow: 0 1px 3px rgba(5, 46, 74, 0.06);
+.hero-icon {
+    width: 54px;
+    height: 54px;
+    display: grid;
+    place-items: center;
+    font-size: 25px;
+    border-radius: 14px;
+    background: rgba(255,255,255,.2);
+    border: 1px solid rgba(255,255,255,.3);
 }
 
-.prediction-metric-card h6 {
-    color: var(--muted);
+.hero-content h4 {
+    font-size: 21px;
+    font-weight: 800;
+    margin: 0;
+}
+
+.hero-content p {
+    color: rgba(255,255,255,.8);
     font-size: 13px;
-    font-weight: 600;
-    margin-bottom: 10px;
+    margin: 6px 0 0;
 }
 
-.prediction-metric-card h3 {
-    font-size: 26px;
-    font-weight: 700;
-    color: var(--ink);
-    margin-bottom: 6px;
-    font-variant-numeric: tabular-nums;
+.prediction-container {
+    max-width: 1500px;
+    padding: 0 24px;
+    margin: auto;
 }
 
-.prediction-metric-card p {
-    font-size: 12px;
-    color: #7a93a3;
-    margin-bottom: 0;
-}
-
-/* ---------- KARTU BAGIAN (INFORMASI, GRAFIK, TABEL) ---------- */
-.prediction-section-card {
-    background: #ffffff;
+.section-card {
+    background: #fff;
     border: 1px solid #e1ecf2;
-    border-radius: 12px;
-    padding: 22px;
+    border-radius: 14px;
+    padding: 24px;
     margin-bottom: 20px;
-    box-shadow: 0 1px 3px rgba(5, 46, 74, 0.06);
+    box-shadow: 0 2px 8px rgba(5,46,74,.04);
 }
 
-.prediction-section-card h5 {
+.section-title {
     font-size: 16px;
-    font-weight: 700;
+    font-weight: 800;
+    margin-bottom: 20px;
     color: var(--ink);
-    margin-bottom: 18px;
 }
 
-.prediction-section-card .row h4 {
-    color: var(--ink);
-    font-weight: 700 !important;
+.section-title i {
+    color: var(--sea-bright);
+    margin-right: 8px;
+}
+
+.metric-grid {
+    display: grid;
+    grid-template-columns: repeat(4,minmax(0,1fr));
+    gap: 16px;
+    margin-bottom: 22px;
+}
+
+.metric-card {
+    background: #fff;
+    border: 1px solid #e1ecf2;
+    border-radius: 13px;
+    padding: 21px;
+    min-width: 0;
+}
+
+.metric-icon {
+    width: 40px;
+    height: 40px;
+    display: grid;
+    place-items: center;
+    border-radius: 11px;
+    background: #e8f6fa;
+    color: #0a6a8f;
+    font-size: 19px;
+    margin-bottom: 14px;
+}
+
+.metric-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #668091;
+    margin-bottom: 9px;
+}
+
+.metric-value {
+    font-size: 25px;
+    font-weight: 800;
+    color: #0f2a3a;
+    overflow-wrap: anywhere;
     font-variant-numeric: tabular-nums;
 }
 
-.prediction-section-card .row small,
-.prediction-section-card > small {
-    color: var(--muted) !important;
+.metric-description {
+    font-size: 11px;
+    color: #8aa0ae;
+    margin-top: 7px;
 }
 
-/* ---------- GRAFIK ---------- */
-.prediction-chart-container {
-    position: relative;
-    width: 100%;
-    height: 320px;
+.stock-value {
+    color: #0a8a58;
 }
 
-.prediction-info {
-    color: var(--muted);
-    font-size: 13px;
+.stock-progress {
+    height: 9px;
+    background: #e9f0f4;
+    border-radius: 20px;
+    overflow: hidden;
     margin-top: 15px;
 }
 
-/* ---------- TABEL RIWAYAT ---------- */
-.prediction-section-card .table {
-    --bs-table-hover-bg: #f3f9fc;
-    --bs-table-border-color: #e8f0f5;
-    margin-bottom: 0;
+.stock-progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg,#1296c4,#22b99b);
+    border-radius: 20px;
 }
 
-.prediction-section-card .table-light {
-    --bs-table-bg: #f3f8fb;
-    --bs-table-color: #36566b;
-    --bs-table-border-color: #e1ecf2;
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    align-items: end;
+    gap: 15px;
 }
 
-.prediction-section-card .table th {
-    font-weight: 600;
+.form-grid label {
+    display: block;
+    font-size: 12px;
+    font-weight: 700;
+    color: #5b7384;
+    margin-bottom: 8px;
+}
+
+.form-grid .form-control {
+    min-height: 44px;
+    border: 1px solid #cfe1e9;
+    border-radius: 9px;
+}
+
+.form-grid .form-control:focus {
+    border-color: #1296c4;
+    box-shadow: 0 0 0 .2rem rgba(18,150,196,.12);
+}
+
+.btn-add-stock {
+    min-height: 44px;
+    border: 0;
+    border-radius: 9px;
+    padding: 0 23px;
+    font-size: 13px;
+    font-weight: 700;
+    color: white;
+    background: linear-gradient(135deg,#1296c4,#0a6a8f);
+}
+
+.btn-add-stock:hover {
+    color: white;
+    filter: brightness(1.08);
+}
+
+.info-text {
+    color: #718797;
+    font-size: 12px;
+    line-height: 1.8;
+    margin-top: 14px;
+}
+
+.sma-box {
+    background: #f2f9fc;
+    border: 1px solid #dfedf3;
+    border-radius: 12px;
+    padding: 20px;
+    height: 100%;
+}
+
+.sma-box small {
+    display: block;
+    font-size: 12px;
+    color: #668091;
+    margin-bottom: 10px;
+}
+
+.sma-box strong {
+    font-size: 25px;
+    color: #0a6a8f;
+}
+
+.sma-selector {
+    width: 180px;
+    border: 1px solid #cfe1e9;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 13px;
+}
+
+.status-box {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 19px 22px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+}
+
+.status-box.success {
+    background: #eaf7f0;
+    border: 1px solid #bfe5d0;
+    color: #15803d;
+}
+
+.status-box.warning {
+    background: #fff7e6;
+    border: 1px solid #f1dca8;
+    color: #a16207;
+}
+
+.status-box.danger {
+    background: #fdeeee;
+    border: 1px solid #f3c4c4;
+    color: #b02a37;
+}
+
+.status-box.secondary {
+    background: #eef5f8;
+    border: 1px solid #d4e4eb;
+    color: #496779;
+}
+
+.status-icon {
+    font-size: 25px;
+}
+
+.status-box strong {
+    display: block;
+    font-size: 14px;
+    margin-bottom: 4px;
+}
+
+.status-box p {
+    font-size: 12px;
+    margin: 0;
+    opacity: .85;
+}
+
+.chart-container {
+    height: 330px;
+    position: relative;
+}
+
+.table thead th {
+    background: #f1f7fa;
+    color: #36566b;
+    font-size: 12px;
     white-space: nowrap;
 }
 
-/* Badge status data */
-.prediction-section-card .badge {
-    font-weight: 600;
-    border-radius: 6px;
-    padding: 0.4em 0.7em;
+.table tbody td {
+    font-size: 12px;
+    vertical-align: middle;
 }
 
-.prediction-section-card .badge.bg-success {
-    background-color: #e8f6ee !important;
-    color: #15803d !important;
-}
-
-.prediction-section-card .badge.bg-warning {
-    background-color: #fdf3df !important;
-    color: #a16207 !important;
-}
-
-/* Kondisi kosong (teks "Belum ada data stok...") */
-.prediction-section-card .text-center.text-muted.py-5 {
-    border: 1px dashed #c9dde7;
-    border-radius: 10px;
-    background-color: #f8fbfd;
-}
-
-/* ---------- HP ---------- */
-@media (max-width: 768px) {
-    .prediction-metrics-grid {
-        grid-template-columns: 1fr;
+@media(max-width:1100px) {
+    .metric-grid {
+        grid-template-columns: repeat(2,1fr);
     }
+}
 
+@media(max-width:700px) {
     .prediction-container {
-        padding: 0 12px 1rem;
+        padding: 0 12px;
     }
 
     .prediction-hero {
-        padding: 1rem 1rem 2rem;
+        padding: 22px 16px;
     }
 
-    .prediction-hero h4 {
-        font-size: 1.15rem;
+    .hero-content h4 {
+        font-size: 17px;
     }
 
-    .prediction-chart-container {
+    .metric-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+
+    .metric-card {
+        padding: 15px;
+    }
+
+    .metric-value {
+        font-size: 20px;
+    }
+
+    .section-card {
+        padding: 17px;
+    }
+
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .btn-add-stock {
+        width: 100%;
+    }
+
+    .chart-container {
         height: 260px;
     }
 }
 
-/* Hormati pengguna yang mematikan animasi di perangkatnya */
-@media (prefers-reduced-motion: reduce) {
-    .prediction-page *,
-    .prediction-page *::before,
-    .prediction-page *::after {
-        animation-duration: 0.01ms !important;
-        animation-iteration-count: 1 !important;
-        transition-duration: 0.01ms !important;
+@media(max-width:420px) {
+    .metric-grid {
+        grid-template-columns: 1fr;
     }
 }
-
 </style>
 
-<div class="prediction-page container-fluid px-0">
+<div class="prediction-page">
 
-    {{-- HEADER FULL LEBAR --}}
+    {{-- HEADER --}}
     <div class="prediction-hero">
-
-        {{-- GELEMBUNG DAN GELOMBANG (VISUAL SAJA) --}}
-        <div class="prediction-bubbles" aria-hidden="true">
-            <span style="--x:6%;  --s:12px; --d:8s;  --delay:0s;"></span>
-            <span style="--x:24%; --s:8px;  --d:6s;  --delay:2s;"></span>
-            <span style="--x:47%; --s:16px; --d:9s;  --delay:1s;"></span>
-            <span style="--x:68%; --s:9px;  --d:7s;  --delay:3s;"></span>
-            <span style="--x:86%; --s:13px; --d:8.5s;--delay:0.6s;"></span>
-        </div>
-        <div class="prediction-waves" aria-hidden="true">
-            <svg class="prediction-wave prediction-wave-back" viewBox="0 0 1200 60" preserveAspectRatio="none">
-                <path d="M0,30 C150,60 300,0 450,30 C600,60 750,0 900,30 C1050,60 1200,0 1350,30 L1350,60 L0,60 Z"/>
-            </svg>
-            <svg class="prediction-wave prediction-wave-front" viewBox="0 0 1200 60" preserveAspectRatio="none">
-                <path d="M0,30 C150,0 300,60 450,30 C600,0 750,60 900,30 C1050,0 1200,60 1350,30 L1350,60 L0,60 Z"/>
-            </svg>
-        </div>
-
-        <div class="prediction-hero-inner">
-            <div class="prediction-hero-icon">
-                <i class="bi bi-graph-up"></i>
+        <div class="hero-content">
+            <div class="hero-icon">
+                <i class="bi bi-boxes"></i>
             </div>
             <div>
-                <h4>Prediksi Refill</h4>
-                <p>
-                    Monitoring konsumsi pakan dan estimasi waktu pengisian ulang stok.
-                </p>
+                <h4>Prediksi Refill Pakan Gudang</h4>
+                <p>Monitoring persediaan dan analisis konsumsi pakan menggunakan metode SMA.</p>
             </div>
         </div>
     </div>
 
     <div class="prediction-container">
 
-        {{-- STATUS PREDIKSI --}}
-        <div class="prediction-status-card">
-            <h5>
-                Status Prediksi: {{ $statusPrediksi }}
+        {{-- NOTIFIKASI --}}
+        @if(session('success'))
+            <div class="alert alert-success">
+                <i class="bi bi-check-circle me-2"></i>
+                {{ session('success') }}
+            </div>
+        @endif
+
+        @if($errors->any())
+            <div class="alert alert-danger">
+                {{ $errors->first() }}
+            </div>
+        @endif
+
+        {{-- STATUS PERSEDIAAN --}}
+        <div class="status-box {{ $statusClass }}">
+            <div class="status-icon">
+                <i class="bi {{ $statusIcon }}"></i>
+            </div>
+            <div>
+                <strong>{{ $status }}</strong>
+                <p>
+                    @if($estimasiHari !== null)
+                        Estimasi total persediaan dapat bertahan sekitar
+                        {{ $fmt($estimasiHari, 1) }} hari berdasarkan rata-rata konsumsi.
+                    @else
+                        Data persediaan atau konsumsi belum mencukupi untuk dianalisis.
+                    @endif
+                </p>
+            </div>
+        </div>
+
+        {{-- FORM TAMBAH STOK --}}
+        <div class="section-card">
+            <h5 class="section-title">
+                <i class="bi bi-plus-circle"></i>
+                Tambah Stok Gudang
             </h5>
 
-            <p>{{ $pesanPrediksi }}</p>
+            <form method="POST" action="{{ route('prediksi.update') }}">
+                @csrf
+
+                <div class="form-grid">
+
+                    <div>
+                        <label for="tanggal_stok">Tanggal Penambahan</label>
+                        <input type="date"
+                               class="form-control"
+                               id="tanggal_stok"
+                               name="tanggal_stok"
+                               value="{{ old('tanggal_stok', now()->format('Y-m-d')) }}"
+                               required>
+                    </div>
+
+                    <div>
+                        <label for="jumlah_stok_kg">Jumlah Pakan Masuk (KG)</label>
+                        <input type="number"
+                               class="form-control"
+                               id="jumlah_stok_kg"
+                               name="jumlah_stok_kg"
+                               step="0.01"
+                               min="0.01"
+                               placeholder="Contoh: 50"
+                               value="{{ old('jumlah_stok_kg') }}"
+                               required>
+                    </div>
+
+                    <button type="submit" class="btn-add-stock">
+                        <i class="bi bi-plus-lg me-2"></i>
+                        Tambah Stok
+                    </button>
+
+                </div>
+            </form>
+
+            <div class="info-text">
+                <i class="bi bi-info-circle me-1"></i>
+                Penambahan stok dicatat sebagai transaksi baru. Pemindahan pakan
+                dari gudang ke wadah IoT tidak dihitung sebagai konsumsi.
+                Pengurangan persediaan dilakukan berdasarkan pakan yang benar-benar
+                dikeluarkan saat jadwal pemberian pakan.
+            </div>
         </div>
 
-        {{-- RINGKASAN PREDIKSI --}}
-        <div class="prediction-metrics-grid">
+        {{-- RINGKASAN PERSEDIAAN --}}
+        <h5 class="section-title">
+            <i class="bi bi-speedometer2"></i>
+            Ringkasan Persediaan
+        </h5>
 
-            <div class="prediction-metric-card">
-                <h6>Rata-rata Pakan / Hari</h6>
+        <div class="metric-grid">
 
-                <h3>
-                    @if ($sma !== null)
-                        {{ number_format($sma / 1000, 2, ',', '.') }} kg
-                    @else
-                        —
-                    @endif
-                </h3>
-
-                <p>Metode Simple Moving Average 7 hari</p>
+            <div class="metric-card">
+                <div class="metric-icon">
+                    <i class="bi bi-box-seam"></i>
+                </div>
+                <div class="metric-label">Total Persediaan Tercatat</div>
+                <div class="metric-value stock-value">
+                    {{ $stokKg !== null ? $fmt($stokKg).' kg' : '—' }}
+                </div>
+                <div class="metric-description">
+                    Gudang dan wadah IoT
+                </div>
             </div>
 
-            <div class="prediction-metric-card">
-                <h6>Hari Tersisa</h6>
-
-                <h3>
-                    @if ($prediksiHari !== null)
-                        {{ number_format($prediksiHari, 1, ',', '.') }} hari
-                    @else
-                        —
-                    @endif
-                </h3>
-
-                <p>Estimasi menuju batas minimum stok</p>
+            <div class="metric-card">
+                <div class="metric-icon">
+                    <i class="bi bi-activity"></i>
+                </div>
+                <div class="metric-label">Konsumsi Hari Ini</div>
+                <div class="metric-value">
+                    {{ $fmt($konsumsiHariIniKg).' kg' }}
+                </div>
+                <div class="metric-description">
+                    Berdasarkan data load cell
+                </div>
             </div>
 
-            <div class="prediction-metric-card">
-                <h6>Rekomendasi Refill</h6>
+            <div class="metric-card">
+                <div class="metric-icon">
+                    <i class="bi bi-graph-up"></i>
+                </div>
+                <div class="metric-label">Rata-rata Konsumsi Harian</div>
+                <div class="metric-value">
+                    {{ $smaKg !== null ? $fmt($smaKg).' kg' : '—' }}
+                </div>
+                <div class="metric-description">
+                    Metode SMA {{ $nSma }} hari
+                </div>
+            </div>
 
-                <h3>{{ $rekomendasiRefill }}</h3>
-
-                <p>
-                    Estimasi tanggal:
-                    {{ $estimasiTanggal ?? 'Belum tersedia' }}
-                </p>
+            <div class="metric-card">
+                <div class="metric-icon">
+                    <i class="bi bi-hourglass-split"></i>
+                </div>
+                <div class="metric-label">Estimasi Ketahanan Persediaan</div>
+                <div class="metric-value">
+                    {{ $estimasiHari !== null ? $fmt($estimasiHari,1).' hari' : '—' }}
+                </div>
+                <div class="metric-description">
+                    Berdasarkan rata-rata konsumsi
+                </div>
             </div>
 
         </div>
 
-        {{-- INFORMASI STOK --}}
-        <div class="prediction-section-card">
+        {{-- ANALISIS SMA --}}
+        <div class="section-card">
 
-            <h5>Informasi Stok Pakan</h5>
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+                <h5 class="section-title mb-0">
+                    <i class="bi bi-calculator"></i>
+                    Analisis Konsumsi Metode SMA
+                </h5>
 
-            <div class="row">
+                <form method="GET" action="{{ url()->current() }}">
+                    <select name="n_sma"
+                            class="sma-selector"
+                            onchange="this.form.submit()">
+                        <option value="3" {{ $nSma == 3 ? 'selected' : '' }}>
+                            SMA 3 Hari
+                        </option>
+                        <option value="7" {{ $nSma == 7 ? 'selected' : '' }}>
+                            SMA 7 Hari
+                        </option>
+                    </select>
+                </form>
+            </div>
 
-                <div class="col-md-4 mb-3">
-                    <small class="text-muted">Stok Saat Ini</small>
+            <div class="row g-3">
 
-                    <h4 class="fw-bold">
-                        {{ $stokSaatIni !== null
-                            ? number_format($stokSaatIni, 0, ',', '.') . ' gram'
-                            : 'Belum tersedia' }}
-                    </h4>
+                <div class="col-md-6">
+                    <div class="sma-box">
+                        <small>Rata-rata Konsumsi Harian SMA {{ $nSma }}</small>
+                        <strong>
+                            {{ $smaKg !== null ? $fmt($smaKg).' kg/hari' : 'Menunggu data' }}
+                        </strong>
+                    </div>
                 </div>
 
-                <div class="col-md-4 mb-3">
-                    <small class="text-muted">Batas Minimum</small>
-
-                    <h4 class="fw-bold">
-                        {{ $batasMinimum !== null
-                            ? number_format($batasMinimum, 0, ',', '.') . ' gram'
-                            : 'Belum tersedia' }}
-                    </h4>
-                </div>
-
-                <div class="col-md-4 mb-3">
-                    <small class="text-muted">Total Konsumsi 7 Hari</small>
-
-                    <h4 class="fw-bold">
-                        {{ number_format($totalKonsumsi, 0, ',', '.') }} gram
-                    </h4>
+                <div class="col-md-6">
+                    <div class="sma-box">
+                        <small>Jumlah Data Konsumsi yang Dianalisis</small>
+                        <strong>{{ $dataSma->count() }} hari</strong>
+                    </div>
                 </div>
 
             </div>
 
-            @if ($monitoring)
-                <small class="text-muted">
-                    Pembacaan stok terakhir:
-                    {{ $monitoring->waktu_pembacaan
-                        ? \Carbon\Carbon::parse($monitoring->waktu_pembacaan)->format('d-m-Y H:i:s')
-                        : 'Tidak tersedia' }}
-                </small>
-            @endif
-
+            <div class="info-text">
+                SMA menghitung rata-rata konsumsi berdasarkan data harian
+                selama 3 atau 7 hari terakhir. Hasilnya digunakan untuk
+                menganalisis pola penggunaan dan ketahanan persediaan pakan.
+            </div>
         </div>
 
-        {{-- GRAFIK PROYEKSI STOK --}}
-        <div class="prediction-section-card">
+        {{-- GRAFIK --}}
+        <div class="section-card">
+            <h5 class="section-title">
+                <i class="bi bi-bar-chart-line"></i>
+                Grafik Konsumsi Aktual dan SMA
+            </h5>
 
-            <h5>Grafik Prediksi Stok Pakan</h5>
-
-            @if ($stokSaatIni !== null)
-
-                <div class="prediction-chart-container">
-                    <canvas id="grafikPrediksiStok"></canvas>
+            @if($rows->count() > 0)
+                <div class="chart-container">
+                    <canvas id="grafikKonsumsi"></canvas>
                 </div>
-
-                <p class="prediction-info">
-                    Grafik menampilkan proyeksi stok selama 7 hari ke depan
-                    berdasarkan rata-rata konsumsi pakan.
-                </p>
-
+                <div class="info-text">
+                    Garis pertama menunjukkan konsumsi aktual harian.
+                    Garis kedua menunjukkan hasil perhitungan rata-rata SMA.
+                </div>
             @else
-
                 <div class="text-center text-muted py-5">
-                    <p>Belum ada data stok untuk ditampilkan.</p>
+                    <i class="bi bi-bar-chart fs-1 d-block mb-3"></i>
+                    Belum ada data konsumsi untuk ditampilkan.
                 </div>
-
             @endif
-
         </div>
 
-        {{-- RIWAYAT KONSUMSI PAKAN --}}
-        <div class="prediction-section-card">
-
-            <h5>Riwayat Penggunaan Pakan (7 Hari Terakhir)</h5>
+        {{-- RIWAYAT KONSUMSI --}}
+        <div class="section-card">
+            <h5 class="section-title">
+                <i class="bi bi-clock-history"></i>
+                Riwayat Konsumsi Harian
+            </h5>
 
             <div class="table-responsive">
-
                 <table class="table table-hover align-middle">
-
-                    <thead class="table-light">
+                    <thead>
                         <tr>
-                            <th>No</th>
+                            <th>No.</th>
                             <th>Tanggal</th>
-                            <th>Konsumsi Pakan</th>
+                            <th>Konsumsi Aktual</th>
+                            <th>SMA {{ $nSma }} Hari</th>
                             <th>Status Data</th>
                         </tr>
                     </thead>
 
                     <tbody>
-
-                        @forelse ($dataKonsumsi as $index => $data)
-
+                        @forelse($rows->reverse()->values() as $index => $r)
                             <tr>
                                 <td>{{ $index + 1 }}</td>
-
-                                <td>{{ $data['tanggal'] }}</td>
-
+                                <td>{{ $r['tanggal'] }}</td>
                                 <td>
-                                    {{ number_format($data['konsumsi'], 0, ',', '.') }}
-                                    gram
+                                    <strong>{{ $fmt($r['konsumsi'],0) }} gram</strong>
                                 </td>
-
                                 <td>
-                                    @if ($data['ada_data'])
-                                        <span class="badge bg-success">
-                                            Tercatat
-                                        </span>
+                                    {{ $r['sma'] !== null
+                                        ? $fmt($r['sma'],0).' gram'
+                                        : '—' }}
+                                </td>
+                                <td>
+                                    @if($r['ada_data'])
+                                        <span class="badge bg-success">Tercatat</span>
                                     @else
-                                        <span class="badge bg-warning text-dark">
-                                            Belum ada data
-                                        </span>
+                                        <span class="badge bg-warning text-dark">Belum ada data</span>
                                     @endif
                                 </td>
                             </tr>
-
                         @empty
-
                             <tr>
-                                <td colspan="4" class="text-center">
-                                    Belum ada data penggunaan pakan.
+                                <td colspan="5" class="text-center text-muted py-5">
+                                    Belum ada riwayat konsumsi.
                                 </td>
                             </tr>
-
                         @endforelse
-
                     </tbody>
-
-                    <tfoot class="table-light">
-
-                        <tr>
-                            <th colspan="2">Total Konsumsi</th>
-
-                            <th colspan="2">
-                                {{ number_format($totalKonsumsi, 0, ',', '.') }}
-                                gram
-                            </th>
-                        </tr>
-
-                    </tfoot>
-
                 </table>
-
             </div>
-
-            <div class="prediction-info">
-                Data konsumsi yang digunakan merupakan data pakan aktual
-                dengan status berhasil.
-                <br>
-                Hari tercatat: {{ $jumlahHariTercatat }} dari 7 hari.
-            </div>
-
         </div>
 
     </div>
 </div>
 
 {{-- CHART JS --}}
+@if($rows->count() > 0)
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
 
-    const canvas = document.getElementById('grafikPrediksiStok');
+    const canvas = document.getElementById('grafikKonsumsi');
 
-    if (!canvas) {
-        return;
-    }
-
-    const labels = @json($grafikLabels);
-    const dataStok = @json($grafikStok);
-    const batasMinimum = Number(@json($batasMinimum ?? 0));
+    if (!canvas) return;
 
     new Chart(canvas, {
-
         type: 'line',
 
         data: {
-            labels: labels,
+            labels: @json($labels),
 
             datasets: [
-
                 {
-                    label: 'Proyeksi Stok (gram)',
-
-                    data: dataStok,
-
+                    label: 'Konsumsi Aktual (kg)',
+                    data: @json($aktual),
                     borderColor: '#1296c4',
-
-                    backgroundColor: 'rgba(18, 150, 196, 0.15)',
-
+                    backgroundColor: 'rgba(18,150,196,.12)',
                     fill: true,
-
-                    tension: 0.3,
-
-                    pointRadius: 4,
-
-                    pointHoverRadius: 6
+                    tension: .3,
+                    borderWidth: 2,
+                    pointRadius: 4
                 },
-
                 {
-                    label: 'Batas Minimum (gram)',
-
-                    data: labels.map(() => batasMinimum),
-
-                    borderColor: '#ef4444',
-
-                    borderDash: [6, 5],
-
-                    pointRadius: 0,
-
-                    fill: false
+                    label: 'SMA {{ $nSma }} Hari (kg)',
+                    data: @json($smaChart),
+                    borderColor: '#f59e0b',
+                    backgroundColor: '#f59e0b',
+                    fill: false,
+                    tension: .3,
+                    borderWidth: 2,
+                    pointRadius: 3,
+                    borderDash: [5,4]
                 }
-
             ]
         },
 
         options: {
-
             responsive: true,
-
             maintainAspectRatio: false,
 
             interaction: {
@@ -650,48 +792,31 @@ document.addEventListener('DOMContentLoaded', function () {
             },
 
             plugins: {
-
                 legend: {
                     position: 'bottom'
-                },
-
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            return context.dataset.label + ': ' +
-                                Number(context.parsed.y).toLocaleString('id-ID') +
-                                ' gram';
-                        }
-                    }
                 }
-
             },
 
             scales: {
-
                 y: {
                     beginAtZero: true,
-
                     title: {
                         display: true,
-                        text: 'Stok Pakan (gram)'
+                        text: 'Konsumsi Pakan (kg)'
                     }
                 },
-
                 x: {
                     title: {
                         display: true,
-                        text: 'Periode'
+                        text: 'Tanggal'
                     }
                 }
-
             }
-
         }
-
     });
 
 });
 </script>
+@endif
 
 @endsection

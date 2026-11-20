@@ -3,471 +3,1088 @@
 @section('title', 'Stok Pakan - Smart Fish Feeder')
 
 @section('content')
+
+@php
+    /*
+    |--------------------------------------------------------------------------
+    | DATA SENSOR ULTRASONIK
+    |--------------------------------------------------------------------------
+    | Data dikirim dari route /stok (routes/web.php) berdasarkan tabel sensor_data.
+    */
+
+    $kapasitasWadah = 6; // kg
+
+    // Jarak sensor ke permukaan pakan (cm)
+    $jarakSensor = $jarakSensor ?? null;
+
+    // Status koneksi ESP32
+    $sensorTerhubung = $sensorTerhubung ?? false;
+
+    /*
+    |--------------------------------------------------------------------------
+    | KALIBRASI SENSOR
+    |--------------------------------------------------------------------------
+    | Jarak 0 cm  = permukaan pakan paling tinggi (batas penuh).
+    | Jarak 23 cm = wadah kosong.
+    */
+
+    $jarakPenuh = 0;
+    $jarakKosong = 23;
+
+    /*
+    |--------------------------------------------------------------------------
+    | PERHITUNGAN PERSENTASE
+    |--------------------------------------------------------------------------
+    */
+
+    $adaDataSensor = $jarakSensor !== null;
+
+    $jarakValid = $adaDataSensor
+        && $jarakSensor >= 0
+        && $jarakSensor <= $jarakKosong;
+
+    $persentase = $jarakValid
+        ? round(
+            (($jarakKosong - $jarakSensor) /
+            ($jarakKosong - $jarakPenuh)) * 100,
+            1
+        )
+        : 0;
+
+    $persentase = max(0, min(100, $persentase));
+
+    /*
+    |--------------------------------------------------------------------------
+    | STATUS STOK BERDASARKAN JARAK
+    |--------------------------------------------------------------------------
+    */
+
+    if (!$adaDataSensor || !$jarakValid) {
+
+        $statusStok = 'Menunggu Sensor';
+        $warnaStatus = 'wait';
+        $keteranganStok = 'Belum ada pembacaan sensor yang valid.';
+        $kondisiJarak = 'Belum tersedia';
+
+    } elseif ($jarakSensor <= 5) {
+
+        $statusStok = 'Stok Aman';
+        $warnaStatus = 'safe';
+        $keteranganStok = 'Permukaan pakan masih tinggi dan persediaan dalam kondisi banyak.';
+        $kondisiJarak = 'Stok Banyak';
+
+    } elseif ($jarakSensor <= 11) {
+
+        $statusStok = 'Stok Masih Cukup';
+        $warnaStatus = 'safe';
+        $keteranganStok = 'Persediaan pakan masih mencukupi untuk proses pemberian pakan.';
+        $kondisiJarak = 'Stok Masih Cukup';
+
+    } elseif ($jarakSensor <= 17) {
+
+        $statusStok = 'Persiapan Refill';
+        $warnaStatus = 'warning';
+        $keteranganStok = 'Permukaan pakan mulai rendah. Petani perlu mempersiapkan pengisian.';
+        $kondisiJarak = 'Perlu Persiapan Refill';
+
+    } elseif ($jarakSensor <= 22) {
+
+        $statusStok = 'Segera Refill';
+        $warnaStatus = 'danger';
+        $keteranganStok = 'Persediaan pakan hampir habis dan perlu segera diisi kembali.';
+        $kondisiJarak = 'Segera Refill';
+
+    } else {
+
+        $statusStok = 'Wadah Kosong';
+        $warnaStatus = 'danger';
+        $keteranganStok = 'Wadah terdeteksi kosong. Buzzer akan memberikan peringatan.';
+        $kondisiJarak = 'Habis Bersih';
+
+    }
+
+@endphp
+
 <div class="stk container-fluid px-0">
 
     {{-- =====================================================
-        HEADER FULL WARNA
-    ===================================================== --}}
+        HEADER
+    ====================================================== --}}
+
     <div class="stk-header py-3 px-4 mb-4 text-white d-flex align-items-center">
 
-        {{-- GELEMBUNG DAN GELOMBANG (VISUAL SAJA) --}}
         <div class="stk-bubbles" aria-hidden="true">
-            <span style="--x:6%;  --s:12px; --d:8s;  --delay:0s;"></span>
-            <span style="--x:24%; --s:8px;  --d:6s;  --delay:2s;"></span>
-            <span style="--x:47%; --s:16px; --d:9s;  --delay:1s;"></span>
-            <span style="--x:68%; --s:9px;  --d:7s;  --delay:3s;"></span>
-            <span style="--x:86%; --s:13px; --d:8.5s;--delay:0.6s;"></span>
+            <span style="--x:6%;--s:12px;--d:8s;--delay:0s;"></span>
+            <span style="--x:24%;--s:8px;--d:6s;--delay:2s;"></span>
+            <span style="--x:47%;--s:16px;--d:9s;--delay:1s;"></span>
+            <span style="--x:68%;--s:9px;--d:7s;--delay:3s;"></span>
+            <span style="--x:86%;--s:13px;--d:8.5s;--delay:.6s;"></span>
         </div>
+
         <div class="stk-waves" aria-hidden="true">
-            <svg class="stk-wave stk-wave-back" viewBox="0 0 1200 60" preserveAspectRatio="none">
+
+            <svg class="stk-wave stk-wave-back"
+                viewBox="0 0 1200 60"
+                preserveAspectRatio="none">
+
                 <path d="M0,30 C150,60 300,0 450,30 C600,60 750,0 900,30 C1050,60 1200,0 1350,30 L1350,60 L0,60 Z"/>
+
             </svg>
-            <svg class="stk-wave stk-wave-front" viewBox="0 0 1200 60" preserveAspectRatio="none">
+
+            <svg class="stk-wave stk-wave-front"
+                viewBox="0 0 1200 60"
+                preserveAspectRatio="none">
+
                 <path d="M0,30 C150,0 300,60 450,30 C600,0 750,60 900,30 C1050,0 1200,60 1350,30 L1350,60 L0,60 Z"/>
+
             </svg>
+
         </div>
 
         <div class="stk-header-inner d-flex align-items-center gap-3">
+
             <div class="stk-header-icon p-2 rounded-3">
                 <i class="bi bi-box-seam fs-5 text-white"></i>
             </div>
+
             <div>
                 <h4 class="fw-bold mb-0">Stok Pakan</h4>
+
                 <p class="text-white text-opacity-75 mb-0 small">
-                    Pantau ketersediaan stok pakan ikan secara real-time dari sensor ultrasonik.
+                    Monitoring kondisi pakan dalam wadah IoT menggunakan sensor ultrasonik.
                 </p>
             </div>
+
         </div>
+
     </div>
 
-    {{-- KONTEN UTAMA --}}
+
     <div class="px-4">
 
-        {{-- ============================================= --}}
-        {{-- KARTU RINGKASAN STOK (3 KOLOM) --}}
-        {{-- ============================================= --}}
+        {{-- =====================================================
+            RINGKASAN INFORMASI
+        ====================================================== --}}
+
         <div class="row g-4 mb-4">
 
-            {{-- Kartu Stok Awal (Kapasitas Wadah) --}}
-            <div class="col-md-4">
+            {{-- KAPASITAS WADAH --}}
+
+            <div class="col-md-6">
+
                 <div class="stk-card stk-metric stk-m1 card border-0 rounded-4 h-100 p-4">
+
                     <div class="d-flex justify-content-between align-items-start mb-3">
-                        <span class="stk-metric-label fw-semibold small">Kapasitas Wadah</span>
-                        <div class="stk-metric-icon rounded-2 p-2 d-flex align-items-center justify-content-center">
+
+                        <span class="stk-metric-label fw-semibold small">
+                            Kapasitas Wadah
+                        </span>
+
+                        <div class="stk-metric-icon rounded-2 p-2">
                             <i class="bi bi-box"></i>
                         </div>
+
                     </div>
-                    <h3 class="stk-metric-value fw-bold mb-1">--- <span class="fs-6 text-muted fw-normal">kg</span></h3>
-                    <p class="text-muted small mb-0">Total kapasitas (Kalibrasi Sensor)</p>
+
+                    <h3 class="stk-metric-value fw-bold mb-1">
+                        {{ number_format($kapasitasWadah, 1, ',', '.') }}
+
+                        <span class="fs-6 text-muted fw-normal">kg</span>
+                    </h3>
+
+                    <p class="text-muted small mb-0">
+                        Kapasitas maksimum wadah pakan.
+                    </p>
+
                 </div>
+
             </div>
 
-            {{-- Kartu Stok Saat Ini (Pembacaan Sensor Real-time) --}}
-            <div class="col-md-4">
+
+            {{-- JARAK SENSOR --}}
+
+            <div class="col-md-6">
+
                 <div class="stk-card stk-metric stk-m2 card border-0 rounded-4 h-100 p-4">
-                    <div class="d-flex justify-content-between align-items-start mb-3">
-                        <span class="stk-metric-label fw-semibold small">Stok Saat Ini</span>
-                        <div class="stk-metric-icon rounded-2 p-2 d-flex align-items-center justify-content-center">
-                            <i class="bi bi-droplet-half"></i>
-                        </div>
-                    </div>
-                    <h3 class="stk-metric-value fw-bold mb-1">--- <span class="fs-6 text-muted fw-normal">kg</span></h3>
-                    <p class="text-muted small mb-0">---% dari kapasitas</p>
-                </div>
-            </div>
 
-            {{-- Kartu Total Terpakai --}}
-            <div class="col-md-4">
-                <div class="stk-card stk-metric stk-m3 card border-0 rounded-4 h-100 p-4">
                     <div class="d-flex justify-content-between align-items-start mb-3">
-                        <span class="stk-metric-label fw-semibold small">Total Terpakai Hari Ini</span>
-                        <div class="stk-metric-icon rounded-2 p-2 d-flex align-items-center justify-content-center">
-                            <i class="bi bi-arrow-counterclockwise"></i>
+
+                        <span class="stk-metric-label fw-semibold small">
+                            Jarak Sensor
+                        </span>
+
+                        <div class="stk-metric-icon rounded-2 p-2">
+                            <i class="bi bi-rulers"></i>
                         </div>
+
                     </div>
-                    <h3 class="stk-metric-value fw-bold mb-1">--- <span class="fs-6 text-muted fw-normal">kg</span></h3>
-                    <p class="text-muted small mb-0">Data pengeluaran pakan</p>
+
+                    <h3 class="stk-metric-value fw-bold mb-1">
+
+                        {{ $jarakValid
+                            ? number_format($jarakSensor, 1, ',', '.')
+                            : '---' }}
+
+                        <span class="fs-6 text-muted fw-normal">cm</span>
+
+                    </h3>
+
+                    <p class="text-muted small mb-0">
+                        Jarak sensor ultrasonik ke permukaan pakan.
+                    </p>
+
                 </div>
+
             </div>
 
         </div>
 
-        {{-- ============================================= --}}
-        {{-- INDIKATOR STOK PAKAN (WADAH SENSOR) --}}
-        {{-- ============================================= --}}
+
+        {{-- =====================================================
+            INDIKATOR STOK PAKAN
+        ====================================================== --}}
+
         <div class="stk-card stk-indicator card border-0 rounded-4 mb-4 p-4">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h5 class="fw-bold mb-0 text-dark">Indikator Stok Pakan</h5>
-                <span class="stk-badge-wait badge px-3 py-2 rounded-pill">Status: Menunggu Sensor</span>
+
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+
+                <h5 class="fw-bold mb-0 text-dark">
+                    Indikator Stok Pakan
+                </h5>
+
+                <span class="stk-badge stk-badge-{{ $warnaStatus }} badge px-3 py-2 rounded-pill">
+
+                    {{ $statusStok }}
+
+                </span>
+
             </div>
+
+
+            {{-- PROGRESS BAR --}}
 
             <div class="mb-4">
+
                 <div class="d-flex justify-content-between mb-2">
-                    <span class="text-muted small fw-semibold">Tingkat Stok</span>
-                    <span class="fw-bold text-dark small">Belum ada data</span>
+
+                    <span class="text-muted small fw-semibold">
+                        Perkiraan Tingkat Isi Wadah
+                    </span>
+
+                    <span class="fw-bold text-dark small">
+
+                        {{ $jarakValid
+                            ? number_format($persentase, 1, ',', '.') . '%'
+                            : 'Belum ada data' }}
+
+                    </span>
+
                 </div>
-                {{-- Progress Bar (Nanti width-nya diatur dinamis dari database/sensor) --}}
-                <div class="stk-progress progress rounded-pill" style="height: 12px;">
-                    <div class="progress-bar bg-secondary rounded-pill" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+
+
+                <div class="stk-progress progress rounded-pill"
+                    style="height:14px;">
+
+                    <div
+                        class="progress-bar rounded-pill stk-progress-{{ $warnaStatus }}"
+                        role="progressbar"
+                        style="width: {{ $persentase }}%"
+                        aria-valuenow="{{ $persentase }}"
+                        aria-valuemin="0"
+                        aria-valuemax="100">
+                    </div>
+
                 </div>
+
+                <p class="text-muted small mt-2 mb-0">
+                    {{ $keteranganStok }}
+                </p>
+
             </div>
 
-            {{-- Keterangan / Legend --}}
-            <div class="stk-legend row mt-4 pt-3 border-top g-3">
-                <div class="stk-legend-item col-md-4 d-flex align-items-center justify-content-between">
+
+            {{-- KONEKSI SENSOR --}}
+
+            <div class="stk-sensor-box rounded-3 p-3 mb-4">
+
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+
                     <div class="d-flex align-items-center gap-2">
-                        <div class="stk-dot rounded-circle bg-success" style="width: 10px; height: 10px;"></div>
-                        <span class="text-muted small">Batas Aman</span>
+
+                        <i class="bi bi-wifi fs-5"></i>
+
+                        <div>
+
+                            <div class="fw-bold small">
+                                Koneksi Sensor ESP32
+                            </div>
+
+                    <div id="keterangan-koneksi" class="text-muted small">
+    {{ $sensorTerhubung
+        ? 'Perangkat berhasil terhubung.'
+        : 'Menunggu koneksi perangkat.' }}
+</div>
+
+                        </div>
+
                     </div>
-                    <span class="badge bg-success bg-opacity-10 text-success">> 40%</span>
+
+
+                  <span id="status-koneksi"
+    class="badge {{ $sensorTerhubung ? 'bg-success' : 'bg-secondary' }}">
+    {{ $sensorTerhubung ? 'Terhubung' : 'Tidak Terhubung' }}
+</span>
+
                 </div>
-                <div class="stk-legend-item stk-legend-mid col-md-4 d-flex align-items-center justify-content-between border-start border-end px-md-4">
-                    <div class="d-flex align-items-center gap-2">
-                        <div class="stk-dot stk-dot-warn rounded-circle bg-warning" style="width: 10px; height: 10px;"></div>
-                        <span class="text-muted small">Menipis</span>
-                    </div>
-                    <span class="badge bg-warning bg-opacity-10 text-warning">15% - 40%</span>
-                </div>
-                <div class="stk-legend-item col-md-4 d-flex align-items-center justify-content-between">
-                    <div class="d-flex align-items-center gap-2">
-                        <div class="stk-dot stk-dot-danger rounded-circle bg-danger" style="width: 10px; height: 10px;"></div>
-                        <span class="text-muted small">Kritis / Habis</span>
-                    </div>
-                    <span class="badge bg-danger bg-opacity-10 text-danger">< 15%</span>
-                </div>
+
             </div>
+
+
+            {{-- INFORMASI JARAK DAN KONDISI --}}
+
+            <div class="row g-3">
+
+                <div class="col-md-6">
+
+                    <div class="stk-info-box rounded-3 p-3 h-100">
+
+                        <span class="text-muted small d-block mb-2">
+                            Hasil Pembacaan Ultrasonik
+                        </span>
+
+                        <h4 class="fw-bold mb-1">
+
+                          <span class="nilai-jarak-sensor">
+    {{ $jarakValid
+        ? number_format($jarakSensor, 1, ',', '.')
+        : '---' }}
+</span>
+
+                            <span class="fs-6 text-muted fw-normal">
+                                cm
+                            </span>
+
+                        </h4>
+
+                        <span class="text-muted small">
+                            Jarak antara sensor dan permukaan pakan.
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+                <div class="col-md-6">
+
+                    <div class="stk-info-box rounded-3 p-3 h-100">
+
+                        <span class="text-muted small d-block mb-2">
+                            Kondisi Persediaan
+                        </span>
+
+                        <h5 class="fw-bold mb-1">
+                            {{ $kondisiJarak }}
+                        </h5>
+
+                        <span class="text-muted small">
+                            Kondisi berdasarkan rentang jarak sensor.
+                        </span>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            {{-- KETERANGAN BATAS PERSENTASE --}}
+
+            <div class="stk-legend row mt-4 pt-3 border-top g-3">
+
+                <div class="col-md-4 d-flex align-items-center justify-content-between">
+
+                    <div class="d-flex align-items-center gap-2">
+
+                        <div class="stk-dot bg-success"></div>
+
+                        <span class="text-muted small">
+                            Batas Aman
+                        </span>
+
+                    </div>
+
+                    <span class="badge bg-success bg-opacity-10 text-success">
+                        &gt; 40%
+                    </span>
+
+                </div>
+
+
+                <div class="col-md-4 d-flex align-items-center justify-content-between border-start border-end px-md-4 stk-legend-mid">
+
+                    <div class="d-flex align-items-center gap-2">
+
+                        <div class="stk-dot bg-warning"></div>
+
+                        <span class="text-muted small">
+                            Menipis
+                        </span>
+
+                    </div>
+
+                    <span class="badge bg-warning bg-opacity-10 text-warning">
+                        15% - 40%
+                    </span>
+
+                </div>
+
+
+                <div class="col-md-4 d-flex align-items-center justify-content-between">
+
+                    <div class="d-flex align-items-center gap-2">
+
+                        <div class="stk-dot bg-danger"></div>
+
+                        <span class="text-muted small">
+                            Kritis / Habis
+                        </span>
+
+                    </div>
+
+                    <span class="badge bg-danger bg-opacity-10 text-danger">
+                        &lt; 15%
+                    </span>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        {{-- =====================================================
+            ACUAN KONDISI REFILL
+        ====================================================== --}}
+
+        <div class="stk-card card border-0 rounded-4 p-4 mb-4">
+
+            <h5 class="fw-bold mb-3">
+
+                <i class="bi bi-info-circle text-primary me-2"></i>
+
+                Acuan Kondisi Refill
+
+            </h5>
+
+            <p class="text-muted small mb-3">
+                Kondisi refill ditentukan berdasarkan jarak permukaan pakan terhadap sensor ultrasonik.
+            </p>
+
+
+            <div class="row g-3">
+
+                <div class="col-md-4">
+
+                    <div class="stk-range">
+
+                        <span class="fw-bold text-success">
+                            0 - 5 cm
+                        </span>
+
+                        <span class="text-muted small d-block">
+                            Stok banyak
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+                <div class="col-md-4">
+
+                    <div class="stk-range">
+
+                        <span class="fw-bold text-success">
+                            &gt; 5 - 11 cm
+                        </span>
+
+                        <span class="text-muted small d-block">
+                            Stok masih cukup
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+                <div class="col-md-4">
+
+                    <div class="stk-range">
+
+                        <span class="fw-bold text-warning">
+                            &gt; 11 - 17 cm
+                        </span>
+
+                        <span class="text-muted small d-block">
+                            Perlu persiapan refill
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+                <div class="col-md-4">
+
+                    <div class="stk-range">
+
+                        <span class="fw-bold text-danger">
+                            &gt; 17 - 22 cm
+                        </span>
+
+                        <span class="text-muted small d-block">
+                            Segera refill
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+                <div class="col-md-4">
+
+                    <div class="stk-range">
+
+                        <span class="fw-bold text-danger">
+                            23 cm
+                        </span>
+
+                        <span class="text-muted small d-block">
+                            Habis bersih dan buzzer aktif
+                        </span>
+
+                    </div>
+
+                </div>
+
+            </div>
+
         </div>
 
     </div>
+
 </div>
 
-{{-- CSS HALAMAN STOK (diawali .stk agar tidak mengganggu halaman lain) --}}
+
+{{-- =====================================================
+    CSS HALAMAN STOK
+====================================================== --}}
+
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
-    .stk {
-        --sea-deep: #052e4a;
-        --sea-mid: #0a6a8f;
-        --sea-bright: #1296c4;
-        --aqua: #5eead4;
-        --ink: #0f2a3a;
-        --muted: #5b7384;
-        --line: #d3e4ec;
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
-        min-height: 100vh;
-        font-family: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
-        background: linear-gradient(160deg, #e8f6fa 0%, #f4fafc 50%, #e3f1f7 100%);
-        color: var(--ink);
-        padding-bottom: 1rem;
+.stk {
+    --sea-deep: #052e4a;
+    --sea-mid: #0a6a8f;
+    --sea-bright: #1296c4;
+    --aqua: #5eead4;
+    --ink: #0f2a3a;
+    --muted: #5b7384;
+
+    min-height: 100vh;
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    background: linear-gradient(160deg, #e8f6fa 0%, #f4fafc 50%, #e3f1f7 100%);
+    color: var(--ink);
+    padding-bottom: 1rem;
+}
+
+.stk h3,
+.stk h4,
+.stk h5 {
+    letter-spacing: -0.02em;
+}
+
+
+/* ANIMASI */
+
+@keyframes stkFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+}
+
+@keyframes stkHeaderIn {
+    from {
+        opacity: 0;
+        transform: translateY(-16px);
     }
 
-    .stk h3, .stk h4, .stk h5 {
-        letter-spacing: -0.02em;
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes stkBubble {
+    0% {
+        transform: translateY(0);
+        opacity: 0;
     }
 
-    @keyframes stkFloat {
-        0%, 100% { transform: translateY(0); }
-        50%      { transform: translateY(-5px); }
+    15% {
+        opacity: 1;
     }
 
-    /* ---------- HEADER ---------- */
-    .stk-header {
-        position: relative;
-        width: 100%;
-        overflow: hidden;
-        padding-bottom: 2.25rem !important;
-        background:
-            radial-gradient(circle at 15% 10%, rgba(94, 234, 212, 0.3), transparent 45%),
-            linear-gradient(135deg, var(--sea-bright) 0%, var(--sea-mid) 55%, var(--sea-deep) 100%);
-        box-shadow: 0 10px 24px -12px rgba(5, 46, 74, 0.5);
-        animation: stkHeaderIn 0.7s ease-out both;
+    100% {
+        transform: translateY(-120px) translateX(12px);
+        opacity: 0;
+    }
+}
+
+@keyframes stkWave {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+}
+
+@keyframes stkCardIn {
+    from {
+        opacity: 0;
+        transform: translateY(26px) scale(.98);
     }
 
-    @keyframes stkHeaderIn {
-        from { opacity: 0; transform: translateY(-16px); }
-        to   { opacity: 1; transform: translateY(0); }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes stkFlow {
+    from { background-position: 0 0; }
+    to { background-position: -200% 0; }
+}
+
+
+/* HEADER */
+
+.stk-header {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+    padding-bottom: 2.25rem !important;
+
+    background:
+        radial-gradient(circle at 15% 10%, rgba(94,234,212,.3), transparent 45%),
+        linear-gradient(135deg, var(--sea-bright), var(--sea-mid) 55%, var(--sea-deep));
+
+    box-shadow: 0 10px 24px -12px rgba(5,46,74,.5);
+    animation: stkHeaderIn .7s ease-out both;
+}
+
+.stk-header-inner {
+    position: relative;
+    z-index: 3;
+}
+
+.stk-header-icon {
+    background: rgba(255,255,255,.2);
+    border: 1px solid rgba(255,255,255,.3);
+    backdrop-filter: blur(4px);
+    animation: stkFloat 5s ease-in-out infinite;
+}
+
+
+/* GELEMBUNG */
+
+.stk-bubbles {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+}
+
+.stk-bubbles span {
+    position: absolute;
+    bottom: -20px;
+    left: var(--x);
+    width: var(--s);
+    height: var(--s);
+    border-radius: 50%;
+
+    background: radial-gradient(
+        circle at 30% 30%,
+        rgba(255,255,255,.75),
+        rgba(255,255,255,.1)
+    );
+
+    border: 1px solid rgba(255,255,255,.4);
+    animation: stkBubble var(--d) var(--delay) linear infinite;
+}
+
+
+/* GELOMBANG */
+
+.stk-waves {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 30px;
+    z-index: 2;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.stk-wave {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 200%;
+    height: 100%;
+}
+
+.stk-wave-back {
+    fill: rgba(255,255,255,.18);
+    animation: stkWave 10s linear infinite;
+}
+
+.stk-wave-front {
+    fill: rgba(255,255,255,.3);
+    height: 70%;
+    animation: stkWave 6s linear infinite reverse;
+}
+
+
+/* KARTU */
+
+.stk-card {
+    position: relative;
+    overflow: hidden;
+    background: #fff;
+
+    box-shadow: 0 10px 25px -14px rgba(5,46,74,.3);
+
+    transition:
+        transform .3s ease,
+        box-shadow .3s ease;
+
+    animation: stkCardIn .7s cubic-bezier(.22,1,.36,1) backwards;
+}
+
+.stk-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 20px 34px -16px rgba(5,46,74,.38);
+}
+
+
+/* KARTU RINGKASAN */
+
+.stk-metric {
+    --accent: var(--sea-bright);
+    --accent-soft: rgba(18,150,196,.13);
+
+    border-top: 4px solid var(--accent) !important;
+}
+
+.stk-m1 {
+    animation-delay: .15s;
+    --accent: #0a6a8f;
+    --accent-soft: rgba(10,106,143,.13);
+}
+
+.stk-m2 {
+    animation-delay: .27s;
+    --accent: #14b8a6;
+    --accent-soft: rgba(20,184,166,.14);
+}
+
+.stk-metric::after {
+    content: '';
+    position: absolute;
+    right: -45px;
+    bottom: -55px;
+    width: 140px;
+    height: 140px;
+    border-radius: 50%;
+    background: var(--accent-soft);
+    transition: transform .5s ease;
+    pointer-events: none;
+}
+
+.stk-metric:hover::after {
+    transform: scale(1.5);
+}
+
+.stk-metric > * {
+    position: relative;
+    z-index: 1;
+}
+
+.stk-metric-label {
+    color: var(--muted);
+}
+
+.stk-metric-icon {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--accent-soft);
+    color: var(--accent);
+    animation: stkFloat 4.5s ease-in-out infinite;
+}
+
+.stk-metric-value {
+    color: var(--ink);
+    font-weight: 800 !important;
+    font-variant-numeric: tabular-nums;
+}
+
+.stk-m2 .stk-metric-value {
+    color: var(--sea-mid);
+}
+
+
+/* INDIKATOR */
+
+.stk-indicator {
+    animation-delay: .5s;
+}
+
+.stk-indicator::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+
+    background: linear-gradient(
+        90deg,
+        var(--sea-bright),
+        var(--aqua),
+        var(--sea-bright)
+    );
+
+    background-size: 200% 100%;
+    animation: stkFlow 6s linear infinite;
+}
+
+
+/* BADGE STATUS */
+
+.stk-badge {
+    font-weight: 700;
+}
+
+.stk-badge-safe {
+    background: rgba(22,163,74,.12);
+    color: #15803d;
+}
+
+.stk-badge-warning {
+    background: rgba(245,158,11,.14);
+    color: #b45309;
+}
+
+.stk-badge-danger {
+    background: rgba(220,38,38,.12);
+    color: #b91c1c;
+}
+
+.stk-badge-wait {
+    background: rgba(100,116,139,.13);
+    color: #475569;
+}
+
+
+/* PROGRESS BAR */
+
+.stk-progress {
+    position: relative;
+    overflow: hidden;
+    background: #e1eef4;
+}
+
+.stk-progress .progress-bar {
+    transition: width 1s ease;
+}
+
+.stk-progress-safe {
+    background: linear-gradient(90deg,#16a34a,#4ade80);
+}
+
+.stk-progress-warning {
+    background: linear-gradient(90deg,#f59e0b,#facc15);
+}
+
+.stk-progress-danger {
+    background: linear-gradient(90deg,#dc2626,#f87171);
+}
+
+.stk-progress-wait {
+    background: #94a3b8;
+}
+
+
+/* KONEKSI DAN INFORMASI SENSOR */
+
+.stk-sensor-box {
+    background: #f4f9fc;
+    border: 1px solid #e1edf3;
+}
+
+.stk-info-box {
+    background: #f6fafc;
+    border: 1px solid #e1edf3;
+}
+
+
+/* ACUAN REFILL */
+
+.stk-range {
+    height: 100%;
+    padding: 15px;
+    border-radius: 12px;
+    background: #f6fafc;
+    border: 1px solid #e1edf3;
+}
+
+
+/* LEGEND */
+
+.stk-legend {
+    border-color: #e3eef4 !important;
+}
+
+.stk-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.stk .badge {
+    font-weight: 700;
+    border-radius: 999px;
+    padding: .4em .8em;
+}
+
+
+/* RESPONSIVE */
+
+@media (max-width: 767px) {
+
+    .stk-legend-mid {
+        border: none !important;
+        padding-left: .75rem !important;
+        padding-right: .75rem !important;
     }
 
-    .stk-header-inner {
-        position: relative;
-        z-index: 3;
-    }
-
-    .stk-header-icon {
-        background: rgba(255, 255, 255, 0.2);
-        border: 1px solid rgba(255, 255, 255, 0.3);
-        backdrop-filter: blur(4px);
-        animation: stkFloat 5s ease-in-out infinite;
-    }
-
-    .stk-bubbles {
-        position: absolute;
-        inset: 0;
-        z-index: 1;
-        pointer-events: none;
-    }
-
-    .stk-bubbles span {
-        position: absolute;
-        bottom: -20px;
-        left: var(--x);
-        width: var(--s);
-        height: var(--s);
-        border-radius: 50%;
-        background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.75), rgba(255, 255, 255, 0.1));
-        border: 1px solid rgba(255, 255, 255, 0.4);
-        animation: stkBubble var(--d) var(--delay) linear infinite;
-    }
-
-    @keyframes stkBubble {
-        0%   { transform: translateY(0) translateX(0); opacity: 0; }
-        15%  { opacity: 1; }
-        100% { transform: translateY(-120px) translateX(12px); opacity: 0; }
-    }
-
-    .stk-waves {
-        position: absolute;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        height: 30px;
-        z-index: 2;
-        overflow: hidden;
-        pointer-events: none;
-    }
-
-    .stk-wave {
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        width: 200%;
-        height: 100%;
-    }
-
-    .stk-wave-back {
-        fill: rgba(255, 255, 255, 0.18);
-        animation: stkWave 10s linear infinite;
-    }
-
-    .stk-wave-front {
-        fill: rgba(255, 255, 255, 0.3);
-        height: 70%;
-        animation: stkWave 6s linear infinite reverse;
-    }
-
-    @keyframes stkWave {
-        from { transform: translateX(0); }
-        to   { transform: translateX(-50%); }
-    }
-
-    /* ---------- KARTU UMUM ---------- */
-    .stk-card {
-        position: relative;
-        overflow: hidden;
-        background: #ffffff;
-        box-shadow: 0 10px 25px -14px rgba(5, 46, 74, 0.3);
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-        animation: stkCardIn 0.7s cubic-bezier(0.22, 1, 0.36, 1) backwards;
-    }
-
-    @keyframes stkCardIn {
-        from { opacity: 0; transform: translateY(26px) scale(0.98); }
-        to   { opacity: 1; transform: translateY(0) scale(1); }
+    .stk-header h4 {
+        font-size: 1.15rem;
     }
 
     .stk-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 20px 34px -16px rgba(5, 46, 74, 0.38);
+        transform: none;
     }
 
-    /* ---------- 3 KARTU RINGKASAN ---------- */
-    .stk-metric {
-        --accent: var(--sea-bright);
-        --accent-soft: rgba(18, 150, 196, 0.13);
-        border-top: 4px solid var(--accent) !important;
+}
+
+
+/* REDUCE MOTION */
+
+@media (prefers-reduced-motion: reduce) {
+
+    .stk *,
+    .stk *::before,
+    .stk *::after {
+
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .01ms !important;
+
     }
 
-    .stk-m1 { animation-delay: 0.15s; --accent: #0a6a8f; --accent-soft: rgba(10, 106, 143, 0.13); }
-    .stk-m2 { animation-delay: 0.27s; --accent: #14b8a6; --accent-soft: rgba(20, 184, 166, 0.14); }
-    .stk-m3 { animation-delay: 0.39s; --accent: #f59e0b; --accent-soft: rgba(245, 158, 11, 0.15); }
+}
 
-    /* Lingkaran lembut di pojok kartu */
-    .stk-metric::after {
-        content: '';
-        position: absolute;
-        right: -45px;
-        bottom: -55px;
-        width: 140px;
-        height: 140px;
-        border-radius: 50%;
-        background: var(--accent-soft);
-        transition: transform 0.5s ease;
-        pointer-events: none;
-    }
 
-    .stk-metric:hover::after {
-        transform: scale(1.5);
-    }
-
-    .stk-metric > * {
-        position: relative;
-        z-index: 1;
-    }
-
-    .stk-metric-label {
-        color: var(--muted);
-    }
-
-    .stk-metric-icon {
-        width: 36px;
-        height: 36px;
-        background: var(--accent-soft);
-        color: var(--accent);
-        animation: stkFloat 4.5s ease-in-out infinite;
-    }
-
-    .stk-m2 .stk-metric-icon { animation-delay: 0.6s; }
-    .stk-m3 .stk-metric-icon { animation-delay: 1.2s; }
-
-    .stk-metric-value {
-        color: var(--ink);
-        font-weight: 800 !important;
-        font-variant-numeric: tabular-nums;
-    }
-
-    .stk-m2 .stk-metric-value {
-        color: var(--sea-mid);
-    }
-
-    /* ---------- INDIKATOR STOK ---------- */
-    .stk-indicator {
-        animation-delay: 0.5s;
-    }
-
-    /* Garis air tipis yang mengalir di atas kartu */
-    .stk-indicator::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 3px;
-        background: linear-gradient(90deg, var(--sea-bright), var(--aqua), var(--sea-bright));
-        background-size: 200% 100%;
-        animation: stkFlow 6s linear infinite;
-    }
-
-    @keyframes stkFlow {
-        from { background-position: 0 0; }
-        to   { background-position: -200% 0; }
-    }
-
-    .stk-badge-wait {
-        background: rgba(245, 158, 11, 0.12);
-        color: #b45309;
-        font-weight: 700;
-    }
-
-    .stk-badge-wait::before {
-        content: '';
-        display: inline-block;
-        width: 7px;
-        height: 7px;
-        margin-right: 7px;
-        border-radius: 50%;
-        background: #f59e0b;
-        animation: stkPulse 1.6s ease-in-out infinite;
-    }
-
-    @keyframes stkPulse {
-        0%, 100% { opacity: 1; transform: scale(1); }
-        50%      { opacity: 0.35; transform: scale(1.4); }
-    }
-
-    .stk-progress {
-        position: relative;
-        overflow: hidden;
-        background-color: #e1eef4;
-    }
-
-    .stk-progress .progress-bar {
-        position: relative;
-        background: linear-gradient(90deg, var(--sea-bright), var(--aqua)) !important;
-        transition: width 1s cubic-bezier(0.22, 1, 0.36, 1);
-    }
-
-    /* Kilau air yang bergerak di trek progress */
-    .stk-progress::after {
-        content: '';
-        position: absolute;
-        inset: 0;
-        background: linear-gradient(100deg, transparent 30%, rgba(18, 150, 196, 0.25) 50%, transparent 70%);
-        background-size: 200% 100%;
-        animation: stkShimmer 2.8s linear infinite;
-        pointer-events: none;
-    }
-
-    @keyframes stkShimmer {
-        from { background-position: 200% 0; }
-        to   { background-position: -200% 0; }
-    }
-
-    /* ---------- LEGEND ---------- */
-    .stk-legend {
-        border-color: #e3eef4 !important;
-    }
-
-    .stk-legend-mid {
-        border-color: #e3eef4 !important;
-    }
-
-    .stk-legend-item {
-        transition: transform 0.2s ease;
-    }
-
-    .stk-legend-item:hover {
-        transform: translateY(-2px);
-    }
-
-    .stk-dot {
-        flex-shrink: 0;
-    }
-
-    .stk-dot-warn   { animation: stkPulse 1.8s ease-in-out infinite; }
-    .stk-dot-danger { animation: stkPulse 1.2s ease-in-out infinite; }
-
-    .stk .badge {
-        font-weight: 700;
-        border-radius: 999px;
-        padding: 0.4em 0.8em;
-    }
-
-    /* ---------- HP ---------- */
-    @media (max-width: 767px) {
-        .stk-legend-mid {
-            border: none !important;
-            padding-left: 0.75rem !important;
-            padding-right: 0.75rem !important;
-        }
-
-        .stk-header h4 {
-            font-size: 1.15rem;
-        }
-
-        .stk-card:hover {
-            transform: none;
-        }
-    }
-
-    /* Hormati pengguna yang mematikan animasi */
-    @media (prefers-reduced-motion: reduce) {
-        .stk *,
-        .stk *::before,
-        .stk *::after {
-            animation-duration: 0.01ms !important;
-            animation-iteration-count: 1 !important;
-            transition-duration: 0.01ms !important;
-        }
-    }
 </style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+    async function updateSensorData() {
+        try {
+            const response = await fetch('/api/sensor-data/latest', {
+                cache: 'no-store'
+            });
+
+            if (!response.ok) {
+                throw new Error('Gagal mengambil data sensor');
+            }
+
+            const result = await response.json();
+            const data = result.data;
+
+            const jarak = data && data.jarak !== null
+                ? Number(data.jarak)
+                : null;
+
+            const waktu = data && data.waktu
+                ? new Date(data.waktu.replace(' ', 'T'))
+                : null;
+
+            const umurData = waktu ? Date.now() - waktu.getTime() : null;
+
+            const sensorTerhubung =
+                umurData !== null &&
+                !isNaN(umurData) &&
+                umurData >= 0 &&
+                umurData <= 30000;
+
+            // Perbarui status koneksi
+            const status = document.getElementById('status-koneksi');
+            const keterangan = document.getElementById('keterangan-koneksi');
+
+            if (status) {
+                status.textContent = sensorTerhubung
+                    ? 'Terhubung'
+                    : 'Tidak Terhubung';
+
+                status.className = sensorTerhubung
+                    ? 'badge bg-success'
+                    : 'badge bg-secondary';
+            }
+
+            if (keterangan) {
+                keterangan.textContent = sensorTerhubung
+                    ? 'Perangkat berhasil terhubung.'
+                    : 'Menunggu koneksi perangkat.';
+            }
+
+            // Perbarui angka jarak sensor
+            const jarakValid = jarak !== null && jarak >= 0 && jarak <= 23;
+
+            const jarakText = sensorTerhubung && jarakValid
+                ? jarak.toFixed(1).replace('.', ',')
+                : '---';
+
+            document.querySelectorAll('.nilai-jarak-sensor')
+                .forEach(element => {
+                    element.textContent = jarakText;
+                });
+
+        } catch (error) {
+            console.error('Monitoring sensor:', error);
+        }
+    }
+
+    updateSensorData();
+    setInterval(updateSensorData, 5000);
+
+});
+</script>
+
 @endsection

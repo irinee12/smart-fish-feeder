@@ -2,276 +2,159 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\RiwayatPakan;
-use App\Models\MonitoringStok;
 use App\Models\PengaturanStok;
-
+use App\Models\RiwayatPakan;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class PrediksiStokController extends Controller
 {
-    /**
-     * Menampilkan halaman prediksi refill pakan.
-     */
     public function index()
     {
-        // ==================================================
-        // 1. AMBIL DATA KONSUMSI PAKAN 7 HARI TERAKHIR
-        // ==================================================
+        $pengaturan = PengaturanStok::latest()->first();
 
-        $tanggalMulai = Carbon::today()->subDays(6);
-        $tanggalAkhir = Carbon::today();
+        $nSma         = (int) ($pengaturan->n_sma ?? 7);
+        $waktuTunggu  = (int) ($pengaturan->waktu_tunggu ?? 3);
+        $stokAwalKg   = $pengaturan && $pengaturan->stok_gudang_kg !== null
+            ? (float) $pengaturan->stok_gudang_kg
+            : null;
+        $tanggalInput = $pengaturan->tanggal_stok_input ?? null;
 
-        $riwayatKonsumsi = RiwayatPakan::query()
-            ->whereDate('tanggal', '>=', $tanggalMulai)
-            ->whereDate('tanggal', '<=', $tanggalAkhir)
+        $konsumsiSejakInput = 0;
+        if ($stokAwalKg !== null && $tanggalInput) {
+            $konsumsiSejakInput = (float) RiwayatPakan::query()
+                ->where('status', 'berhasil')
+                ->whereNotNull('porsi_aktual')
+                ->whereDate('tanggal', '>=', Carbon::parse($tanggalInput)->toDateString())
+                ->sum('porsi_aktual');
+        }
+
+        $stokKg   = $stokAwalKg !== null ? max($stokAwalKg - ($konsumsiSejakInput / 1000), 0) : null;
+        $stokGram = $stokKg !== null ? $stokKg * 1000 : null;
+
+        $data = collect($this->konsumsiHarian($nSma))->values();
+        $vals = $data->pluck('konsumsi')->map(fn ($v) => (float) $v)->all();
+
+        $rows = [];
+        foreach ($data as $i => $d) {
+            $sma = $i + 1 >= $nSma
+                ? array_sum(array_slice($vals, $i + 1 - $nSma, $nSma)) / $nSma
+                : null;
+            $rows[] = [
+                'tanggal'  => $d['tanggal'],
+                'konsumsi' => $vals[$i],
+                'ada_data' => $d['ada_data'],
+                'sma'      => $sma,
+            ];
+        }
+        $rows = collect($rows);
+
+        $smaSekarang   = $rows->count() ? $rows->last()['sma'] : null;
+        $prediksiBesok = $smaSekarang;
+        $prediksi7Hari = $smaSekarang !== null ? $smaSekarang * 7 : null;
+        $sisaHari      = ($stokGram !== null && $smaSekarang > 0) ? $stokGram / $smaSekarang : null;
+
+        if ($stokKg === null) {
+            $statusKey   = 'none';
+            $rekomendasi = 'Stok belum diinput';
+            $pesan       = 'Isi stok gudang (kg) terlebih dahulu agar prediksi bisa dihitung.';
+        } elseif ($sisaHari === null) {
+            $statusKey   = 'none';
+            $rekomendasi = 'Belum bisa dihitung';
+            $pesan       = "Butuh data konsumsi minimal {$nSma} hari untuk menghitung rata-rata SMA.";
+        } elseif ($sisaHari < $waktuTunggu) {
+            $statusKey   = 'danger';
+            $rekomendasi = 'Segera beli pakan';
+            $pesan       = "Sisa stok gudang kurang dari waktu tunggu pembelian ({$waktuTunggu} hari). Pesan pakan sekarang agar tidak kehabisan.";
+        } else {
+            $statusKey   = 'ok';
+            $rekomendasi = 'Stok mencukupi';
+            $pesan       = "Stok gudang masih cukup melewati waktu tunggu pembelian ({$waktuTunggu} hari).";
+        }
+
+        $tglHabis    = $sisaHari !== null ? now()->addDays((int) floor($sisaHari)) : null;
+        $tglBeli     = $tglHabis ? $tglHabis->copy()->subDays($waktuTunggu) : null;
+        $tglBeliTeks = $tglBeli
+            ? ($tglBeli->isPast() ? 'Sekarang' : $tglBeli->translatedFormat('d M Y'))
+            : 'Belum tersedia';
+
+        $gLabels = $rows->pluck('tanggal')->all();
+        $gAktual = $rows->pluck('konsumsi')->map(fn ($v) => round($v))->all();
+        $gSma    = $rows->pluck('sma')->map(fn ($v) => $v !== null ? round($v) : null)->all();
+        $gProy   = array_fill(0, max(count($gLabels) - 1, 0), null);
+
+        if ($smaSekarang !== null) {
+            $gProy[] = round($smaSekarang);
+            for ($i = 1; $i <= 7; $i++) {
+                $gLabels[] = now()->addDays($i)->format('d M');
+                $gAktual[] = null;
+                $gSma[]    = null;
+                $gProy[]   = round($smaSekarang);
+            }
+        }
+
+        $adaGrafik = $rows->count() > 0;
+
+        return view('prediksi', compact(
+            'nSma', 'waktuTunggu', 'stokAwalKg', 'konsumsiSejakInput', 'tanggalInput',
+            'stokKg', 'rows', 'smaSekarang', 'prediksiBesok', 'prediksi7Hari', 'sisaHari',
+            'statusKey', 'rekomendasi', 'pesan', 'tglHabis', 'tglBeliTeks',
+            'gLabels', 'gAktual', 'gSma', 'gProy', 'adaGrafik'
+        ));
+    }
+
+    public function update(Request $request)
+    {
+        $data = $request->validate([
+            'stok_gudang_kg' => 'nullable|numeric|min:0',
+            'n_sma'          => 'required|in:3,7',
+            'waktu_tunggu'   => 'required|integer|min:0|max:60',
+        ]);
+
+        $pengaturan = PengaturanStok::latest()->first() ?? new PengaturanStok();
+
+        $stokBaru = $data['stok_gudang_kg'] ?? null;
+        if ($stokBaru !== null && (float) $stokBaru !== (float) $pengaturan->stok_gudang_kg) {
+            $pengaturan->stok_gudang_kg     = $stokBaru;
+            $pengaturan->tanggal_stok_input = now();
+        }
+
+        $pengaturan->n_sma        = $data['n_sma'];
+        $pengaturan->waktu_tunggu = $data['waktu_tunggu'];
+        $pengaturan->save();
+
+        return redirect()->route('prediksi.index')->with('success', 'Pengaturan berhasil disimpan.');
+    }
+
+    private function konsumsiHarian(int $nSma): array
+    {
+        $mulai = Carbon::yesterday()->subDays($nSma + 6);
+        $akhir = Carbon::yesterday();
+
+        $riwayat = RiwayatPakan::query()
             ->where('status', 'berhasil')
             ->whereNotNull('porsi_aktual')
-            ->select(
-                DB::raw('DATE(tanggal) as tanggal'),
-                DB::raw('SUM(porsi_aktual) as total_konsumsi')
-            )
+            ->whereDate('tanggal', '>=', $mulai)
+            ->whereDate('tanggal', '<=', $akhir)
+            ->select(DB::raw('DATE(tanggal) as hari'), DB::raw('SUM(porsi_aktual) as total'))
             ->groupBy(DB::raw('DATE(tanggal)'))
-            ->orderBy('tanggal')
-            ->get()
-            ->keyBy(function ($item) {
-                return Carbon::parse($item->tanggal)->format('Y-m-d');
-            });
+            ->pluck('total', 'hari');
 
-
-        // ==================================================
-        // 2. SIAPKAN DATA 7 HARI
-        // ==================================================
-
-        $dataKonsumsi = [];
-        $totalKonsumsi = 0;
-        $jumlahHariTercatat = 0;
-
-        for ($i = 0; $i < 7; $i++) {
-
-            $tanggal = Carbon::today()->subDays(6 - $i);
-            $tanggalKey = $tanggal->format('Y-m-d');
-
-            $konsumsi = 0;
-            $adaData = false;
-
-            if ($riwayatKonsumsi->has($tanggalKey)) {
-
-                $konsumsi = (float) $riwayatKonsumsi
-                    ->get($tanggalKey)
-                    ->total_konsumsi;
-
-                $adaData = true;
-                $jumlahHariTercatat++;
-            }
-
-            $totalKonsumsi += $konsumsi;
-
-            $dataKonsumsi[] = [
-                'tanggal' => $tanggal->format('d-m-Y'),
-                'konsumsi' => $konsumsi,
-                'ada_data' => $adaData,
+        $hasil = [];
+        for ($d = $mulai->copy(); $d->lte($akhir); $d->addDay()) {
+            $key = $d->format('Y-m-d');
+            $hasil[] = [
+                'tanggal'  => $d->format('d M'),
+                'konsumsi' => (float) ($riwayat[$key] ?? 0),
+                'ada_data' => isset($riwayat[$key]),
             ];
         }
 
-
-        // ==================================================
-        // 3. HITUNG SMA (SIMPLE MOVING AVERAGE) 7 HARI
-        // ==================================================
-
-        $dataCukup = $jumlahHariTercatat === 7;
-
-        if ($dataCukup) {
-            $sma = $totalKonsumsi / 7;
-        } else {
-            $sma = null;
+        while ($hasil && !$hasil[0]['ada_data']) {
+            array_shift($hasil);
         }
 
-
-        // ==================================================
-        // 4. AMBIL DATA MONITORING STOK TERBARU
-        // ==================================================
-
-        $monitoring = MonitoringStok::query()
-            ->orderBy('waktu_pembacaan', 'desc')
-            ->first();
-
-
-        // ==================================================
-        // 5. AMBIL PENGATURAN STOK AKTIF
-        // ==================================================
-
-        $pengaturan = PengaturanStok::query()
-            ->latest()
-            ->first();
-
-
-        // ==================================================
-        // 6. AMBIL STOK SAAT INI DAN BATAS MINIMUM
-        // ==================================================
-
-        $stokSaatIni = null;
-        $batasMinimum = null;
-
-        if ($monitoring) {
-            $stokSaatIni = is_numeric($monitoring->stok_gram)
-                ? (float) $monitoring->stok_gram
-                : null;
-        }
-
-        if ($pengaturan) {
-            $batasMinimum = is_numeric($pengaturan->batas_minimum)
-                ? (float) $pengaturan->batas_minimum
-                : null;
-        }
-
-
-        // ==================================================
-        // 7. HITUNG ESTIMASI HARI MENUJU BATAS MINIMUM
-        // ==================================================
-
-        $prediksiHari = null;
-        $estimasiTanggal = null;
-
-        $statusPrediksi = 'Belum Tersedia';
-        $pesanPrediksi = 'Data belum cukup untuk membuat prediksi.';
-        $rekomendasiRefill = 'Belum tersedia';
-
-
-        if (
-            $dataCukup &&
-            $sma !== null &&
-            $sma > 0 &&
-            $stokSaatIni !== null &&
-            $batasMinimum !== null
-        ) {
-
-            // Jika stok sudah mencapai atau di bawah batas minimum
-            if ($stokSaatIni <= $batasMinimum) {
-
-                $prediksiHari = 0;
-                $estimasiTanggal = Carbon::today()->format('d-m-Y');
-
-                $statusPrediksi = 'Perlu Refill';
-                $pesanPrediksi = 'Stok pakan sudah mencapai atau berada di bawah batas minimum.';
-                $rekomendasiRefill = 'Refill Sekarang';
-
-            } else {
-
-                // Sisa stok yang masih bisa digunakan
-                $stokTersedia = $stokSaatIni - $batasMinimum;
-
-                // Estimasi hari menuju batas minimum
-                $prediksiHari = $stokTersedia / $sma;
-
-                // Estimasi tanggal refill
-                $estimasiTanggal = Carbon::today()
-                    ->addDays((int) ceil($prediksiHari))
-                    ->format('d-m-Y');
-
-
-                // Tentukan status prediksi
-                if ($prediksiHari <= 1) {
-
-                    $statusPrediksi = 'Segera Refill';
-                    $pesanPrediksi = 'Stok diperkirakan mencapai batas minimum dalam waktu kurang dari atau sama dengan 1 hari.';
-                    $rekomendasiRefill = 'Refill Besok';
-
-                } elseif ($prediksiHari <= 3) {
-
-                    $statusPrediksi = 'Persiapan Refill';
-                    $pesanPrediksi = 'Stok diperkirakan mencapai batas minimum dalam beberapa hari ke depan.';
-                    $rekomendasiRefill = 'Siapkan Pakan';
-
-                } else {
-
-                    $statusPrediksi = 'Stok Aman';
-                    $pesanPrediksi = 'Stok pakan masih mencukupi berdasarkan rata-rata konsumsi 7 hari terakhir.';
-                    $rekomendasiRefill = 'Belum Perlu Refill';
-
-                }
-            }
-
-        } elseif (!$dataCukup) {
-
-            $statusPrediksi = 'Data Belum Cukup';
-            $pesanPrediksi = 'Prediksi membutuhkan data konsumsi pakan selama 7 hari berturut-turut.';
-            $rekomendasiRefill = 'Menunggu Data';
-
-        } elseif ($sma === null || $sma <= 0) {
-
-            $statusPrediksi = 'Konsumsi Belum Tersedia';
-            $pesanPrediksi = 'Rata-rata konsumsi pakan belum dapat dihitung atau bernilai nol.';
-            $rekomendasiRefill = 'Menunggu Data';
-
-        } elseif ($stokSaatIni === null) {
-
-            $statusPrediksi = 'Stok Belum Tersedia';
-            $pesanPrediksi = 'Data monitoring stok pakan belum tersedia.';
-            $rekomendasiRefill = 'Periksa Sensor Stok';
-
-        } elseif ($batasMinimum === null) {
-
-            $statusPrediksi = 'Batas Minimum Belum Diatur';
-            $pesanPrediksi = 'Silakan atur batas minimum stok pakan terlebih dahulu.';
-            $rekomendasiRefill = 'Atur Batas Minimum';
-
-        }
-
-
-        // ==================================================
-        // 8. SIAPKAN DATA GRAFIK
-        // ==================================================
-
-        $grafikLabels = [];
-        $grafikStok = [];
-
-        if ($stokSaatIni !== null) {
-
-            $stokProyeksi = $stokSaatIni;
-
-            // Hari ke-0 adalah stok saat ini
-            $grafikLabels[] = 'Hari ini';
-            $grafikStok[] = round($stokProyeksi, 2);
-
-            // Proyeksi stok untuk 7 hari ke depan
-            for ($i = 1; $i <= 7; $i++) {
-
-                if ($sma !== null && $sma > 0) {
-                    $stokProyeksi -= $sma;
-                }
-
-                // Stok proyeksi tidak boleh negatif
-                $stokProyeksi = max(0, $stokProyeksi);
-
-                $grafikLabels[] = 'Hari ke-' . $i;
-                $grafikStok[] = round($stokProyeksi, 2);
-            }
-        }
-
-
-        // ==================================================
-        // 9. KIRIM SEMUA DATA KE VIEW
-        // ==================================================
-
-        return view('prediksi', compact(
-            'dataKonsumsi',
-            'totalKonsumsi',
-            'jumlahHariTercatat',
-            'dataCukup',
-            'sma',
-            'monitoring',
-            'pengaturan',
-            'stokSaatIni',
-            'batasMinimum',
-            'prediksiHari',
-            'estimasiTanggal',
-            'statusPrediksi',
-            'pesanPrediksi',
-            'rekomendasiRefill',
-            'grafikLabels',
-            'grafikStok'
-        ));
+        return $hasil;
     }
 }

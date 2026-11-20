@@ -1,71 +1,78 @@
-/* ==========================================
-   RIWAYAT PAKAN - TAMPILAN (TEMA LAUT)
-   Simpan di: public/css/riwayat.css
-   ========================================== */
-
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
-.rwy {
+/* ==========================================
+   PREDIKSI STOK GUDANG - TAMPILAN (TEMA LAUT)
+   Simpan di: public/css/prediksi.css
+   ========================================== */
+
+.prediction-page {
     --sea-deep: #052e4a;
     --sea-mid: #0a6a8f;
     --sea-bright: #1296c4;
     --aqua: #5eead4;
     --ink: #0f2a3a;
     --muted: #5b7384;
+    --line: #d3e4ec;
 
     min-height: 100vh;
     font-family: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
     background: linear-gradient(160deg, #e8f6fa 0%, #f4fafc 50%, #e3f1f7 100%);
     color: var(--ink);
+    padding-bottom: 1rem;
 }
 
-/* ---------- HEADER ---------- */
-.rwy-header {
-    position: relative;
-    width: 100%;
-    overflow: hidden;
-    padding-bottom: 2.25rem !important;
-    background:
-        radial-gradient(circle at 15% 10%, rgba(94, 234, 212, 0.3), transparent 45%),
-        linear-gradient(135deg, var(--sea-bright) 0%, var(--sea-mid) 55%, var(--sea-deep) 100%);
-    box-shadow: 0 10px 24px -12px rgba(5, 46, 74, 0.5);
-    animation: rwyHeaderIn 0.7s ease-out both;
-}
-
-@keyframes rwyHeaderIn {
-    from { opacity: 0; transform: translateY(-16px); }
-    to   { opacity: 1; transform: translateY(0); }
-}
-
-.rwy-header h4 {
-    letter-spacing: -0.02em;
-}
-
-.rwy-header-inner {
-    position: relative;
-    z-index: 3;
-}
-
-.rwy-header-icon {
-    background: rgba(255, 255, 255, 0.2);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    backdrop-filter: blur(4px);
-    animation: rwyFloat 5s ease-in-out infinite;
-}
-
-@keyframes rwyFloat {
+@keyframes prdFloat {
     0%, 100% { transform: translateY(0); }
     50%      { transform: translateY(-5px); }
 }
 
-.rwy-bubbles {
-    position: absolute;
-    inset: 0;
-    z-index: 1;
-    pointer-events: none;
+/* ---------- HEADER ---------- */
+.prediction-hero {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    padding: 1rem 1.5rem 2.25rem;
+    margin-bottom: 1.5rem;
+    color: #ffffff;
+    background:
+        radial-gradient(circle at 15% 10%, rgba(94, 234, 212, 0.3), transparent 45%),
+        linear-gradient(135deg, var(--sea-bright) 0%, var(--sea-mid) 55%, var(--sea-deep) 100%);
+    box-shadow: 0 10px 24px -12px rgba(5, 46, 74, 0.5);
+    animation: prdHeroIn 0.7s ease-out both;
 }
 
-.rwy-bubbles span {
+@keyframes prdHeroIn {
+    from { opacity: 0; transform: translateY(-16px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.prediction-hero-inner {
+    position: relative;
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.prediction-hero-icon {
+    padding: 0.5rem 0.65rem;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(4px);
+    font-size: 1.25rem;
+    line-height: 1;
+    animation: prdFloat 5s ease-in-out infinite;
+}
+
+.prediction-hero h4 { margin: 0; font-weight: 800; letter-spacing: -0.02em; }
+.prediction-hero p  { margin: 0; font-size: 0.875rem; color: rgba(255, 255, 255, 0.8); }
+
+.prediction-bubbles { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
+
+.prediction-bubbles span {
     position: absolute;
     bottom: -20px;
     left: var(--x);
@@ -74,291 +81,191 @@
     border-radius: 50%;
     background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.75), rgba(255, 255, 255, 0.1));
     border: 1px solid rgba(255, 255, 255, 0.4);
-    animation: rwyBubble var(--d) var(--delay) linear infinite;
+    animation: prdBubble var(--d) var(--delay) linear infinite;
 }
 
-@keyframes rwyBubble {
+@keyframes prdBubble {
     0%   { transform: translateY(0) translateX(0); opacity: 0; }
     15%  { opacity: 1; }
     100% { transform: translateY(-120px) translateX(12px); opacity: 0; }
 }
 
-.rwy-waves {
+.prediction-waves {
     position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    left: 0; right: 0; bottom: 0;
     height: 30px;
     z-index: 2;
     overflow: hidden;
     pointer-events: none;
 }
 
-.rwy-wave {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 200%;
-    height: 100%;
-}
+.prediction-wave { position: absolute; bottom: 0; left: 0; width: 200%; height: 100%; }
+.prediction-wave-back  { fill: rgba(255, 255, 255, 0.18); animation: prdWave 10s linear infinite; }
+.prediction-wave-front { fill: rgba(255, 255, 255, 0.3); height: 70%; animation: prdWave 6s linear infinite reverse; }
 
-.rwy-wave-back {
-    fill: rgba(255, 255, 255, 0.18);
-    animation: rwyWave 10s linear infinite;
-}
-
-.rwy-wave-front {
-    fill: rgba(255, 255, 255, 0.3);
-    height: 70%;
-    animation: rwyWave 6s linear infinite reverse;
-}
-
-@keyframes rwyWave {
+@keyframes prdWave {
     from { transform: translateX(0); }
     to   { transform: translateX(-50%); }
 }
 
-/* ---------- LAYOUT HALAMAN ---------- */
-.rwy .history-page {
-    display: flex;
-    flex-direction: column;
-    gap: 1.25rem;
-    text-align: left;
-}
+/* ---------- WADAH KONTEN ---------- */
+.prediction-container { padding: 0 1.5rem 1rem; }
 
-/* --- 1. FILTER & EXPORT CARD --- */
-.rwy .history-filter-card {
-    padding: 1.25rem 1.5rem;
-    background: #ffffff;
+/* ---------- BANNER REKOMENDASI ---------- */
+.prediction-status-card {
+    background: #eef7fb;
+    border: 1px solid #cfe5ee;
     border-radius: 12px;
-    border: 1px solid #e1ecf2;
-    box-shadow: 0 1px 3px rgba(5, 46, 74, 0.06);
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
-    flex-wrap: wrap;
-    gap: 1rem;
+    padding: 18px 22px;
+    margin-bottom: 20px;
 }
 
-.rwy .history-filter-left {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
+.prediction-status-card h5 { font-weight: 700; color: var(--sea-mid); margin-bottom: 6px; }
+.prediction-status-card p  { color: #36566b; margin-bottom: 0; }
 
-.rwy .form-label-custom {
-    font-size: 0.75rem;
-    font-weight: 700;
-    color: var(--muted);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin: 0;
-}
+.prediction-status-card.is-ok     { background: #eaf7f0; border-color: #bfe5d0; }
+.prediction-status-card.is-ok h5  { color: #15803d; }
+.prediction-status-card.is-warn   { background: #fff7e6; border-color: #f1dca8; }
+.prediction-status-card.is-warn h5 { color: #a16207; }
+.prediction-status-card.is-danger { background: #fdeeee; border-color: #f3c4c4; }
+.prediction-status-card.is-danger h5 { color: #b02a37; }
 
-.rwy .form-input-custom {
-    padding: 0.55rem 0.8rem;
-    font-family: inherit;
-    font-size: 0.875rem;
-    border: 1px solid #c9dde7;
-    border-radius: 8px;
-    outline: none;
-    background-color: #ffffff;
-    color: var(--ink);
-    transition: border-color 0.2s, box-shadow 0.2s;
-    width: 260px;
-}
-
-.rwy .form-input-custom:focus {
-    border-color: var(--sea-bright);
-    box-shadow: 0 0 0 3px rgba(18, 150, 196, 0.15);
-}
-
-/* Tombol Export PDF */
-.rwy .btn-primary {
-    background: var(--sea-mid);
-    border-color: var(--sea-mid);
-    color: #ffffff;
-    font-family: inherit;
+.prediction-pill {
+    display: inline-block;
+    margin-top: 10px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 12px;
     font-weight: 600;
-    border-radius: 8px;
-    padding: 0.55rem 1.1rem;
-    transition: background-color 0.2s, border-color 0.2s;
+    background: #fdf3df;
+    color: #a16207;
 }
 
-.rwy .btn-primary:hover {
-    background: var(--sea-deep);
-    border-color: var(--sea-deep);
-    color: #ffffff;
+/* ---------- KARTU RINGKASAN (4 KARTU) ---------- */
+.prediction-metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 20px;
 }
 
-.rwy .btn-primary:focus-visible {
-    outline: 3px solid rgba(18, 150, 196, 0.35);
-    outline-offset: 2px;
-}
-
-.rwy .history-export-icon {
-    font-size: 1.1rem;
-    line-height: 1;
-    font-weight: bold;
-}
-
-/* --- 2. GRAFIK & TABEL KARTU --- */
-.rwy .history-chart-card,
-.rwy .history-table-card {
-    padding: 1.5rem;
+.prediction-metric-card {
     background: #ffffff;
-    border-radius: 12px;
     border: 1px solid #e1ecf2;
+    border-radius: 12px;
+    padding: 20px 22px;
     box-shadow: 0 1px 3px rgba(5, 46, 74, 0.06);
 }
 
-.rwy .history-card-title {
-    font-size: 1rem;
+.prediction-metric-card.is-buy {
+    border-top: 3px solid var(--sea-bright);
+    background: linear-gradient(180deg, #f1fafd 0%, #ffffff 60%);
+}
+
+.prediction-metric-card h6 { color: var(--muted); font-size: 13px; font-weight: 600; margin-bottom: 10px; }
+
+.prediction-metric-card h3 {
+    font-size: 26px;
     font-weight: 700;
     color: var(--ink);
-    margin-bottom: 0.2rem;
+    margin-bottom: 6px;
+    font-variant-numeric: tabular-nums;
 }
 
-.rwy .history-card-description {
-    font-size: 0.8125rem;
-    color: var(--muted);
-    margin-bottom: 1.25rem;
+.prediction-metric-card p { font-size: 12px; color: #7a93a3; margin-bottom: 0; }
+
+/* ---------- KARTU BAGIAN ---------- */
+.prediction-section-card {
+    background: #ffffff;
+    border: 1px solid #e1ecf2;
+    border-radius: 12px;
+    padding: 22px;
+    margin-bottom: 20px;
+    box-shadow: 0 1px 3px rgba(5, 46, 74, 0.06);
 }
 
-/* Empty Chart State */
-.rwy .history-empty-chart {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    padding: 3rem 1rem;
-    background-color: #f8fbfd;
+.prediction-section-card h5 { font-size: 16px; font-weight: 700; color: var(--ink); margin-bottom: 18px; }
+
+.prediction-section-card .row h4 { color: var(--ink); font-weight: 700 !important; font-variant-numeric: tabular-nums; }
+.prediction-section-card .row small,
+.prediction-section-card > small { color: var(--muted) !important; }
+
+/* ---------- FORM ---------- */
+.prediction-form {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    align-items: end;
+}
+
+.prediction-form label { font-size: 13px; font-weight: 600; color: var(--muted); margin-bottom: 6px; }
+.prediction-form .form-control,
+.prediction-form .form-select { border-color: #cfe5ee; border-radius: 8px; }
+.prediction-form .form-control:focus,
+.prediction-form .form-select:focus {
+    border-color: var(--sea-bright);
+    box-shadow: 0 0 0 .2rem rgba(18, 150, 196, .15);
+}
+
+.prediction-form-actions { grid-column: 1 / -1; }
+
+.prediction-btn {
+    background: linear-gradient(135deg, var(--sea-bright), var(--sea-mid));
+    color: #fff;
+    border: 0;
+    border-radius: 8px;
+    padding: .55rem 1.4rem;
+    font-weight: 600;
+}
+.prediction-btn:hover { color: #fff; filter: brightness(1.08); }
+
+/* ---------- GRAFIK ---------- */
+.prediction-chart-container { position: relative; width: 100%; height: 320px; }
+.prediction-info { color: var(--muted); font-size: 13px; margin-top: 15px; }
+
+/* ---------- TABEL ---------- */
+.prediction-section-card .table {
+    --bs-table-hover-bg: #f3f9fc;
+    --bs-table-border-color: #e8f0f5;
+    margin-bottom: 0;
+}
+
+.prediction-section-card .table-light {
+    --bs-table-bg: #f3f8fb;
+    --bs-table-color: #36566b;
+    --bs-table-border-color: #e1ecf2;
+}
+
+.prediction-section-card .table th { font-weight: 600; white-space: nowrap; }
+
+.prediction-section-card .badge { font-weight: 600; border-radius: 6px; padding: 0.4em 0.7em; }
+.prediction-section-card .badge.bg-success { background-color: #e8f6ee !important; color: #15803d !important; }
+.prediction-section-card .badge.bg-warning { background-color: #fdf3df !important; color: #a16207 !important; }
+
+.prediction-section-card .text-center.text-muted.py-5 {
     border: 1px dashed #c9dde7;
     border-radius: 10px;
-    color: var(--muted);
-    gap: 0.4rem;
+    background-color: #f8fbfd;
 }
 
-.rwy .history-empty-icon {
-    font-size: 2.5rem;
-    margin-bottom: 0.25rem;
+/* ---------- RESPONSIF ---------- */
+@media (max-width: 992px) {
+    .prediction-metrics-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
-.rwy .history-empty-chart strong {
-    font-size: 0.95rem;
-    color: #36566b;
+@media (max-width: 768px) {
+    .prediction-metrics-grid { grid-template-columns: 1fr; }
+    .prediction-form { grid-template-columns: 1fr; }
+    .prediction-container { padding: 0 12px 1rem; }
+    .prediction-hero { padding: 1rem 1rem 2rem; }
+    .prediction-hero h4 { font-size: 1.15rem; }
+    .prediction-chart-container { height: 260px; }
 }
 
-.rwy .history-empty-chart span {
-    font-size: 0.8125rem;
-    color: #7a93a3;
-    max-width: 350px;
-}
-
-/* --- 3. TABEL RIWAYAT --- */
-.rwy .history-table-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1rem;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-}
-
-.rwy .history-data-count {
-    font-size: 0.8125rem;
-    color: var(--muted);
-    font-weight: 500;
-}
-
-.rwy .table-wrapper {
-    overflow-x: auto;
-}
-
-.rwy .history-table {
-    width: 100%;
-    border-collapse: collapse;
-    text-align: left;
-    font-size: 0.875rem;
-}
-
-.rwy .history-table th {
-    padding: 0.75rem 1rem;
-    background-color: #f3f8fb;
-    color: #36566b;
-    font-weight: 700;
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    border-bottom: 1px solid #e1ecf2;
-    white-space: nowrap;
-}
-
-.rwy .history-table td {
-    padding: 0.875rem 1rem;
-    border-bottom: 1px solid #e8f0f5;
-    color: #1f3b4d;
-}
-
-.rwy .history-table tbody tr:hover td {
-    background-color: #f3f9fc;
-}
-
-/* Empty Table State */
-.rwy .history-empty-table {
-    text-align: center !important;
-    padding: 3rem 1rem !important;
-    color: var(--muted);
-}
-
-.rwy .history-empty-table:hover {
-    background-color: transparent !important;
-}
-
-.rwy .history-empty-table-icon {
-    font-size: 2.5rem;
-    margin-bottom: 0.5rem;
-}
-
-.rwy .history-empty-table strong {
-    display: block;
-    font-size: 0.95rem;
-    color: #36566b;
-    margin-bottom: 0.25rem;
-}
-
-.rwy .history-empty-table span {
-    font-size: 0.8125rem;
-    color: #7a93a3;
-}
-
-/* ---------- HP ---------- */
-@media (max-width: 576px) {
-    .rwy-header h4 {
-        font-size: 1.15rem;
-    }
-
-    .rwy .history-filter-card {
-        align-items: stretch;
-    }
-
-    .rwy .history-filter-left,
-    .rwy .form-input-custom,
-    .rwy .btn-primary {
-        width: 100%;
-    }
-
-    .rwy .btn-primary {
-        justify-content: center;
-    }
-}
-
-/* Hormati pengguna yang mematikan animasi */
 @media (prefers-reduced-motion: reduce) {
-    .rwy *,
-    .rwy *::before,
-    .rwy *::after {
+    .prediction-page *,
+    .prediction-page *::before,
+    .prediction-page *::after {
         animation-duration: 0.01ms !important;
         animation-iteration-count: 1 !important;
         transition-duration: 0.01ms !important;
