@@ -11,7 +11,9 @@ class SensorDataController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'jarak' => 'required|numeric|min:0|max:400',
+            'jarak'        => 'required|numeric|min:0|max:400',
+            'persen_isi'   => 'nullable|numeric',
+            'status_fuzzy' => 'nullable|string',
         ]);
 
         $id = DB::table('sensor_data')->insertGetId([
@@ -22,7 +24,7 @@ class SensorDataController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Data sensor berhasil disimpan',
-            'id' => $id,
+            'id'      => $id,
         ], 200);
     }
 
@@ -36,12 +38,18 @@ class SensorDataController extends Controller
         $sensorTerhubung = false;
         $umurData = null;
 
-        if ($data && !empty($data->waktu_pembacaan)) {
-            $waktuTerakhir = Carbon::parse($data->waktu_pembacaan);
-            $umurData = now()->timestamp - $waktuTerakhir->timestamp;
+        if ($data) {
+            // Prioritaskan created_at (format UTC standar Laravel) agar kebal selisih timezone
+            $waktuRef = $data->created_at ?? $data->waktu_pembacaan;
 
-            // Anggap terhubung jika ada data baru dalam 30 detik terakhir
-            $sensorTerhubung = $umurData >= 0 && $umurData <= 30;
+            if (!empty($waktuRef)) {
+                $waktuTerakhir = Carbon::parse($waktuRef);
+                $umurData = abs(now()->diffInSeconds($waktuTerakhir));
+
+                // Toleransi 180 detik (3 menit) agar status tidak putus saat ESP32 
+                // memblokir komunikasi HTTP selama proses menimbang & menuang pakan (ISI/SETTLE/ALIR)
+                $sensorTerhubung = $umurData <= 180;
+            }
         }
 
         // Format ulang agar kompatibel dengan field tabel lama maupun baru
