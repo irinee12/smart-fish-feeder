@@ -1,16 +1,9 @@
-
 <?php
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\SensorDataController;
 use App\Http\Controllers\Api\IoTController;
-
-/*
-|--------------------------------------------------------------------------
-| API Routes Smart Fish Feeder
-|--------------------------------------------------------------------------
-*/
 
 // ==========================================
 // SENSOR DATA ESP32
@@ -33,23 +26,21 @@ Route::get('/user', function (Request $request) {
 
 
 // ==========================================
-// ROUTE KHUSUS PERANGKAT IoT
+// ROUTE KHUSUS PERANGKAT IoT (Tanpa Sanctum dulu agar ESP32 langsung tembus)
 // ==========================================
 
-Route::prefix('iot')
-    ->middleware('auth:sanctum')
-    ->group(function () {
+Route::prefix('iot')->group(function () {
 
-        // Mengambil jadwal pemberian pakan
-        Route::get('/jadwal', [IoTController::class, 'getJadwal']);
+    // Mengambil jadwal pemberian pakan -> URL: http://172.14.9.61:8000/api/iot/jadwal
+    Route::get('/jadwal', [IoTController::class, 'getJadwal']);
 
-        // Mengirim data monitoring stok
-        Route::post('/monitoring-stok', [IoTController::class, 'storeMonitoring']);
+    // Mengirim data monitoring stok -> URL: http://172.14.9.61:8000/api/iot/monitoring-stok
+    Route::post('/monitoring-stok', [IoTController::class, 'storeMonitoring']);
 
-        // Mengirim riwayat pemberian pakan
-        Route::post('/riwayat-pakan', [IoTController::class, 'storeRiwayat']);
+    // Mengirim riwayat pemberian pakan -> URL: http://172.14.9.61:8000/api/iot/riwayat-pakan
+    Route::post('/riwayat-pakan', [IoTController::class, 'storeRiwayat']);
 
-        // Memperbarui status perangkat
-        Route::post('/status', [IoTController::class, 'updateStatus']);
+    // Memperbarui status perangkat -> URL: http://172.14.9.61:8000/api/iot/status
+    Route::post('/status', [IoTController::class, 'updateStatus']);
 
-    });
+});

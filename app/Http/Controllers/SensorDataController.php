@@ -8,7 +8,6 @@ use Carbon\Carbon;
 
 class SensorDataController extends Controller
 {
-    // ESP32 mengirim data jarak ke database
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -24,31 +23,44 @@ class SensorDataController extends Controller
             'success' => true,
             'message' => 'Data sensor berhasil disimpan',
             'id' => $id,
-        ], 201);
+        ], 200);
     }
 
-    // Mengambil data sensor terakhir sekaligus memeriksa koneksi
+    // Mengambil data sensor terakhir dari tabel monitoring_stoks
     public function latest()
     {
-        $data = DB::table('sensor_data')
+        $data = DB::table('monitoring_stoks')
             ->latest('id')
             ->first();
 
         $sensorTerhubung = false;
         $umurData = null;
 
-        if ($data && !empty($data->waktu)) {
-            $waktuTerakhir = Carbon::parse($data->waktu);
+        if ($data && !empty($data->waktu_pembacaan)) {
+            $waktuTerakhir = Carbon::parse($data->waktu_pembacaan);
             $umurData = now()->timestamp - $waktuTerakhir->timestamp;
 
+            // Anggap terhubung jika ada data baru dalam 30 detik terakhir
             $sensorTerhubung = $umurData >= 0 && $umurData <= 30;
         }
 
+        // Format ulang agar kompatibel dengan field tabel lama maupun baru
+        $formattedData = $data ? [
+            'id'              => $data->id,
+            'jarak'           => $data->jarak_sensor,
+            'jarak_sensor'    => $data->jarak_sensor,
+            'stok_gram'       => $data->stok_gram,
+            'stok_kg'         => round($data->stok_gram / 1000, 2),
+            'persentase_stok' => $data->persentase_stok,
+            'waktu'           => $data->waktu_pembacaan,
+            'waktu_pembacaan' => $data->waktu_pembacaan,
+        ] : null;
+
         return response()->json([
-            'success' => true,
+            'success'          => true,
             'sensor_terhubung' => $sensorTerhubung,
-            'umur_data_detik' => $umurData,
-            'data' => $data,
+            'umur_data_detik'  => $umurData,
+            'data'             => $formattedData,
         ]);
     }
 }

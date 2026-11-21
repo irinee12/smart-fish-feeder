@@ -371,7 +371,9 @@
 
                     <div>
                         <h2 class="fw-bold mb-0 text-dark">
-                            {{ $next->waktu ?? '--:--' }}
+                            <small class="text-muted">
+    {{ $next ? ($next->sesi.' · '.$next->target.' g') : 'Belum ada jadwal aktif' }}
+</small>{{ $next->waktu ?? '--:--' }}
                         </h2>
 
                         <small class="text-muted">

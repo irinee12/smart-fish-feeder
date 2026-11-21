@@ -7,12 +7,30 @@ use Illuminate\Http\Request;
 
 class JadwalController extends Controller
 {
+    
     public function index()
     {
         // Ambil data dari database, urutkan berdasarkan waktu
         $jadwals = JadwalPakan::orderBy('waktu', 'asc')->get();
         return view('Jadwal', compact('jadwals'));
     }
+
+    public function apiEsp32()
+{
+    $jadwals = JadwalPakan::orderBy('waktu', 'asc')->get();
+
+    $dataJadwal = $jadwals->map(function ($jadwal) {
+        return [
+            'jam' => \Carbon\Carbon::parse($jadwal->waktu)->format('H:i'),
+            'target_g' => (int) round($jadwal->porsi),
+        ];
+    });
+
+    return response()->json([
+        'waktu_server' => now()->format('Y-m-d H:i:s'),
+        'jadwal' => $dataJadwal,
+    ]);
+}
 
     public function store(Request $request)
     {

@@ -7,200 +7,156 @@ use App\Models\PerangkatIot;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Carbon\Carbon;
 
 class IoTController extends Controller
 {
     /**
-     * Memastikan token memiliki hak akses dan
-     * perangkat yang melakukan request valid.
+     * Mengambil perangkat dari token jika ada, atau fallback ke perangkat pertama
+     * agar ESP32 tanpa token tetap bisa terhubung.
      */
-    private function checkDevice(Request $request, string $ability)
+    private function resolveDevice(Request $request): ?PerangkatIot
     {
         $device = $request->user();
-
-        if (!$device instanceof PerangkatIot) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Token bukan milik perangkat IoT.'
-            ], 403);
+        if ($device instanceof PerangkatIot) {
+            return $device;
         }
-
-        if (!$device->tokenCan($ability)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Token tidak memiliki izin akses.'
-            ], 403);
-        }
-
-        return $device;
+        return PerangkatIot::first();
     }
 
-    /**
-     * Memperbarui status perangkat menjadi online.
-     */
-    private function touchDevice(PerangkatIot $device): void
+    private function touchDevice(?PerangkatIot $device): void
     {
-        $device->update([
-            'status' => 'online',
-            'last_seen' => now(),
-        ]);
+        if ($device) {
+            $device->update([
+                'status'    => 'online',
+                'last_seen' => now(),
+            ]);
+        }
     }
 
     /**
      * 1. Mengambil jadwal pemberian pakan.
      * GET /api/iot/jadwal
+     * Output disesuaikan dengan parseJadwal() di ESP32:
+     * { "waktu_server": "YYYY-MM-DD HH:MM:SS", "jadwal": [ { "jam": "HH:MM", "target_g": 50 } ] }
      */
     public function getJadwal(Request $request)
     {
-        $device = $this->checkDevice($request, 'iot:read');
+        $device = $this->resolveDevice($request);
 
-        if ($device instanceof \Illuminate\Http\JsonResponse) {
-            return $device;
-        }
-
-        $jadwal = DB::table('jadwal_pakans')
-            ->select('id', 'waktu', 'sesi', 'porsi')
+        $rows = DB::table('jadwal_pakans')
+            ->select('waktu', 'porsi')
             ->orderBy('waktu')
             ->get();
+
+        // Format ulang agar sesuai key yang dibaca ESP32 ("jam" dan "target_g")
+        $jadwalEsp = $rows->map(function ($row) {
+            return [
+                'jam'      => Carbon::parse($row->waktu)->format('H:i'),
+                'target_g' => (int) $row->porsi,
+            ];
+        });
 
         $this->touchDevice($device);
 
         return response()->json([
-            'success' => true,
-            'message' => 'Jadwal pakan berhasil diambil.',
-            'data' => $jadwal,
-        ]);
+            'success'      => true,
+            'waktu_server' => now()->format('Y-m-d H:i:s'),
+            'jadwal'       => $jadwalEsp,
+        ], 200);
     }
 
     /**
      * 2. Menyimpan monitoring stok pakan.
      * POST /api/iot/monitoring-stok
+     * Input dari ESP32: jarak, persen_isi, status_fuzzy
      */
     public function storeMonitoring(Request $request)
     {
-        $device = $this->checkDevice($request, 'iot:write');
-
-        if ($device instanceof \Illuminate\Http\JsonResponse) {
-            return $device;
-        }
+        $device = $this->resolveDevice($request);
 
         $validator = Validator::make($request->all(), [
-            'jarak_sensor' => 'nullable|numeric|min:0',
-            'stok_gram' => 'required|numeric|min:0',
-            'persentase_stok' => 'nullable|numeric|between:0,100',
+            'jarak'        => 'required|numeric|min:0|max:400',
+            'persen_isi'   => 'nullable|numeric|between:0,100',
+            'status_fuzzy' => 'nullable|string',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Data monitoring tidak valid.',
-                'errors' => $validator->errors(),
+                'errors'  => $validator->errors(),
             ], 422);
         }
 
+        // Hitung estimasi stok_gram dari persen_isi (misal kapasitas penuh wadah = 1000 gram)
+        $kapasitasMaxGram = 1000; 
+        $persen = (float) ($request->persen_isi ?? 0);
+        $estimasiGram = ($persen / 100) * $kapasitasMaxGram;
+
         $id = DB::table('monitoring_stoks')->insertGetId([
-            'perangkat_iot_id' => $device->id,
-            'jarak_sensor' => $request->jarak_sensor,
-            'stok_gram' => $request->stok_gram,
-            'persentase_stok' => $request->persentase_stok,
-            'waktu_pembacaan' => now(),
-            'created_at' => now(),
-            'updated_at' => now(),
+            'perangkat_iot_id' => $device ? $device->id : 1,
+            'jarak_sensor'     => $request->jarak,
+            'stok_gram'        => $estimasiGram,
+            'persentase_stok'  => $persen,
+            'waktu_pembacaan'  => now(),
+            'created_at'       => now(),
+            'updated_at'       => now(),
         ]);
 
         $this->touchDevice($device);
 
+        // Wajib kode 200 agar httpPostForm() di ESP32 menganggap sukses
         return response()->json([
             'success' => true,
-            'message' => 'Monitoring stok berhasil disimpan.',
-            'data' => [
-                'id' => $id,
-                'stok_gram' => $request->stok_gram,
-                'persentase_stok' => $request->persentase_stok,
-            ],
-        ], 201);
+            'id'      => $id,
+        ], 200);
     }
 
     /**
      * 3. Menyimpan riwayat pemberian pakan.
      * POST /api/iot/riwayat-pakan
+     * Input dari ESP32: jam, target_g, aktual_g, error
      */
     public function storeRiwayat(Request $request)
     {
-        $device = $this->checkDevice($request, 'iot:write');
+        $device = $this->resolveDevice($request);
 
-        if ($device instanceof \Illuminate\Http\JsonResponse) {
-            return $device;
+        // Ambil nilai dengan fallback jika ada data riwayat lama yang kosong
+        $jamInput = $request->input('jam');
+        if (empty($jamInput)) {
+            $jamInput = now()->format('H:i');
         }
 
-        $validator = Validator::make($request->all(), [
-            'transaction_id' => 'required|string|max:100',
-            'jadwal_pakan_id' => 'nullable|integer|exists:jadwal_pakans,id',
-            'tanggal' => 'required|date_format:Y-m-d',
-            'waktu' => 'required|date_format:H:i:s',
-            'porsi_target' => 'required|numeric|min:0',
-            'porsi_aktual' => 'nullable|numeric|min:0',
-            'status' => 'required|in:berhasil,gagal,menunggu',
-        ]);
+        $tanggalHariIni = now()->format('Y-m-d');
+        $waktuPakan = strlen($jamInput) === 5 ? $jamInput . ':00' : $jamInput;
+        $trxId = 'TRX-' . str_replace('-', '', $tanggalHariIni) . '-' . str_replace(':', '', $waktuPakan);
 
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Data riwayat pakan tidak valid.',
-                'errors' => $validator->errors(),
-            ], 422);
+        $existing = DB::table('riwayat_pakans')->where('transaction_id', $trxId)->first();
+        if ($existing) {
+            $this->touchDevice($device);
+            return response()->json(['success' => true, 'duplicate' => true], 200);
         }
 
-        // Mencegah riwayat ganda saat ESP32 mengirim ulang
-        // data yang sebelumnya belum mendapat respons server.
-        $existing = DB::table('riwayat_pakans')
-            ->where('transaction_id', $request->transaction_id)
+        $jadwalMatch = DB::table('jadwal_pakans')
+            ->where('waktu', 'like', substr($jamInput, 0, 5) . '%')
             ->first();
 
-        if ($existing) {
-            if ((int) $existing->perangkat_iot_id !== (int) $device->id) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Transaction ID sudah digunakan perangkat lain.',
-                ], 409);
-            }
-
-            $this->touchDevice($device);
-
-            return response()->json([
-                'success' => true,
-                'duplicate' => true,
-                'message' => 'Riwayat sudah pernah tersimpan.',
-                'data' => [
-                    'id' => $existing->id,
-                    'transaction_id' => $existing->transaction_id,
-                ],
-            ]);
-        }
-
-        $id = DB::table('riwayat_pakans')->insertGetId([
-            'perangkat_iot_id' => $device->id,
-            'transaction_id' => $request->transaction_id,
-            'jadwal_pakan_id' => $request->jadwal_pakan_id,
-            'tanggal' => $request->tanggal,
-            'waktu' => $request->waktu,
-            'porsi_target' => $request->porsi_target,
-            'porsi_aktual' => $request->porsi_aktual,
-            'status' => $request->status,
-            'created_at' => now(),
-            'updated_at' => now(),
+        DB::table('riwayat_pakans')->insert([
+            'perangkat_iot_id' => $device ? $device->id : 1,
+            'transaction_id'   => $trxId,
+            'jadwal_pakan_id'  => $jadwalMatch ? $jadwalMatch->id : null,
+            'tanggal'          => $tanggalHariIni,
+            'waktu'            => $waktuPakan,
+            'porsi_target'     => (float) $request->input('target_g', 0),
+            'porsi_aktual'     => (float) $request->input('aktual_g', 0),
+            'status'           => ((int) $request->input('error', 0) === 0) ? 'berhasil' : 'gagal',
+            'created_at'       => now(),
+            'updated_at'       => now(),
         ]);
 
         $this->touchDevice($device);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Riwayat pemberian pakan berhasil disimpan.',
-            'data' => [
-                'id' => $id,
-                'transaction_id' => $request->transaction_id,
-            ],
-        ], 201);
+        return response()->json(['success' => true], 200);
     }
 
     /**
@@ -209,22 +165,11 @@ class IoTController extends Controller
      */
     public function updateStatus(Request $request)
     {
-        $device = $this->checkDevice($request, 'iot:write');
-
-        if ($device instanceof \Illuminate\Http\JsonResponse) {
-            return $device;
-        }
-
+        $device = $this->resolveDevice($request);
         $this->touchDevice($device);
 
         return response()->json([
             'success' => true,
-            'message' => 'Status perangkat berhasil diperbarui.',
-            'data' => [
-                'device_code' => $device->device_code,
-                'status' => $device->status,
-                'last_seen' => $device->last_seen,
-            ],
-        ]);
+        ], 200);
     }
 }
