@@ -37,11 +37,11 @@
     |--------------------------------------------------------------------------
     */
 
-    $adaDataSensor = $jarakSensor !== null;
+    $adaDataSensor = $jarakSensor !== null && $sensorTerhubung;
 
+    // Jarak > 23 cm tetap dianggap data valid (= wadah kosong / tidak ada pantulan), bukan 'tidak ada data'.
     $jarakValid = $adaDataSensor
-        && $jarakSensor >= 0
-        && $jarakSensor <= $jarakKosong;
+        && $jarakSensor >= 0;
 
     $persentase = $jarakValid
         ? round(
@@ -221,9 +221,9 @@
 
                     <h3 class="stk-metric-value fw-bold mb-1">
 
-                        {{ $jarakValid
+                        <span class="nilai-jarak-sensor">{{ $jarakValid
                             ? number_format($jarakSensor, 1, ',', '.')
-                            : '---' }}
+                            : '---' }}</span>
 
                         <span class="fs-6 text-muted fw-normal">cm</span>
 
@@ -252,7 +252,7 @@
                     Indikator Stok Pakan
                 </h5>
 
-                <span class="stk-badge stk-badge-{{ $warnaStatus }} badge px-3 py-2 rounded-pill">
+                <span id="badge-status" class="stk-badge stk-badge-{{ $warnaStatus }} badge px-3 py-2 rounded-pill">
 
                     {{ $statusStok }}
 
@@ -271,7 +271,7 @@
                         Perkiraan Tingkat Isi Wadah
                     </span>
 
-                    <span class="fw-bold text-dark small">
+                    <span id="nilai-persen" class="fw-bold text-dark small">
 
                         {{ $jarakValid
                             ? number_format($persentase, 1, ',', '.') . '%'
@@ -286,7 +286,7 @@
                     style="height:14px;">
 
                     <div
-                        class="progress-bar rounded-pill stk-progress-{{ $warnaStatus }}"
+                        id="bar-isi" class="progress-bar rounded-pill stk-progress-{{ $warnaStatus }}"
                         role="progressbar"
                         style="width: {{ $persentase }}%"
                         aria-valuenow="{{ $persentase }}"
@@ -296,12 +296,21 @@
 
                 </div>
 
-                <p class="text-muted small mt-2 mb-0">
+                <p id="keterangan-stok" class="text-muted small mt-2 mb-0">
                     {{ $keteranganStok }}
                 </p>
 
             </div>
 
+
+            {{-- BERAT LOAD CELL (realtime) --}}
+            <div class="rounded-3 p-3 mb-3 border d-flex justify-content-between align-items-center">
+                <span class="fw-bold small"><i class="bi bi-speedometer2 me-1"></i> Berat Timbangan (Load Cell)</span>
+                <span class="fw-bold">
+                    <span id="nilai-berat-loadcell">---</span> g
+                    <small class="text-muted fw-normal ms-2">SMA-5: <span id="nilai-berat-sma">---</span> g</small>
+                </span>
+            </div>
 
             {{-- KONEKSI SENSOR --}}
 
@@ -383,7 +392,7 @@
                             Kondisi Persediaan
                         </span>
 
-                        <h5 class="fw-bold mb-1">
+                        <h5 id="kondisi-jarak" class="fw-bold mb-1">
                             {{ $kondisiJarak }}
                         </h5>
 
@@ -1015,66 +1024,78 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
 
+    // Kalibrasi & batas status (harus sama dengan blok @php di atas)
+    const JARAK_KOSONG = 23;
+    const JARAK_PENUH  = 0;
+
+    const fmt = (n) => n.toFixed(1).replace('.', ',');
+    const el  = (id) => document.getElementById(id);
+    const setText = (id, t) => { const e = el(id); if (e) e.textContent = t; };
+
+    function statusDariJarak(j) {
+        if (j <= 5)  return ['Stok Aman', 'safe', 'Permukaan pakan masih tinggi dan persediaan dalam kondisi banyak.', 'Stok Banyak'];
+        if (j <= 11) return ['Stok Masih Cukup', 'safe', 'Persediaan pakan masih mencukupi untuk proses pemberian pakan.', 'Stok Masih Cukup'];
+        if (j <= 17) return ['Persiapan Refill', 'warning', 'Permukaan pakan mulai rendah. Petani perlu mempersiapkan pengisian.', 'Perlu Persiapan Refill'];
+        if (j <= 22) return ['Segera Refill', 'danger', 'Persediaan pakan hampir habis dan perlu segera diisi kembali.', 'Segera Refill'];
+        return ['Wadah Kosong', 'danger', 'Wadah terdeteksi kosong. Buzzer akan memberikan peringatan.', 'Habis Bersih'];
+    }
+
     async function updateSensorData() {
         try {
-            const response = await fetch('/api/sensor-data/latest', {
-                cache: 'no-store'
-            });
-
-            if (!response.ok) {
-                throw new Error('Gagal mengambil data sensor');
-            }
+            const response = await fetch('/api/sensor-data/latest', { cache: 'no-store' });
+            if (!response.ok) throw new Error('Gagal mengambil data sensor');
 
             const result = await response.json();
             const data = result.data;
 
-            const jarak = data && data.jarak !== null
-                ? Number(data.jarak)
-                : null;
+            // Status terhubung ditentukan SERVER (hindari beda jam server vs browser)
+            const terhubung = result.sensor_terhubung === true;
 
-            const waktu = data && data.waktu
-                ? new Date(data.waktu.replace(' ', 'T'))
-                : null;
+            const jarak = data && data.jarak !== null ? Number(data.jarak) : NaN;
+            const valid = terhubung && !isNaN(jarak) && jarak >= 0;
 
-            const umurData = waktu ? Date.now() - waktu.getTime() : null;
-
-            const sensorTerhubung =
-                umurData !== null &&
-                !isNaN(umurData) &&
-                umurData >= 0 &&
-                umurData <= 30000;
-
-            // Perbarui status koneksi
-            const status = document.getElementById('status-koneksi');
-            const keterangan = document.getElementById('keterangan-koneksi');
-
+            // Koneksi
+            const status = el('status-koneksi');
             if (status) {
-                status.textContent = sensorTerhubung
-                    ? 'Terhubung'
-                    : 'Tidak Terhubung';
-
-                status.className = sensorTerhubung
-                    ? 'badge bg-success'
-                    : 'badge bg-secondary';
+                status.textContent = terhubung ? 'Terhubung' : 'Tidak Terhubung';
+                status.className = terhubung ? 'badge bg-success' : 'badge bg-secondary';
             }
+            setText('keterangan-koneksi', terhubung ? 'Perangkat berhasil terhubung.' : 'Menunggu koneksi perangkat.');
 
-            if (keterangan) {
-                keterangan.textContent = sensorTerhubung
-                    ? 'Perangkat berhasil terhubung.'
-                    : 'Menunggu koneksi perangkat.';
-            }
-
-            // Perbarui angka jarak sensor
-            const jarakValid = jarak !== null && jarak >= 0 && jarak <= 23;
-
-            const jarakText = sensorTerhubung && jarakValid
-                ? jarak.toFixed(1).replace('.', ',')
-                : '---';
-
+            // Jarak (semua tempat yang menampilkan jarak)
             document.querySelectorAll('.nilai-jarak-sensor')
-                .forEach(element => {
-                    element.textContent = jarakText;
-                });
+                .forEach(e => { e.textContent = valid ? fmt(jarak) : '---'; });
+
+            // Load cell
+            setText('nilai-berat-loadcell',
+                terhubung && data && data.berat_g != null ? fmt(Number(data.berat_g)) : '---');
+            setText('nilai-berat-sma',
+                terhubung && data && data.berat_sma != null ? fmt(Number(data.berat_sma)) : '---');
+
+            // Persentase, bar, badge, keterangan
+            let persen = 0, st = ['Menunggu Sensor', 'wait', 'Belum ada pembacaan sensor yang valid.', 'Belum tersedia'];
+            if (valid) {
+                persen = Math.round(((JARAK_KOSONG - jarak) / (JARAK_KOSONG - JARAK_PENUH)) * 1000) / 10;
+                persen = Math.max(0, Math.min(100, persen));
+                st = statusDariJarak(jarak);
+            }
+
+            setText('nilai-persen', valid ? fmt(persen) + '%' : 'Belum ada data');
+            setText('keterangan-stok', st[2]);
+            setText('kondisi-jarak', st[3]);
+
+            const badge = el('badge-status');
+            if (badge) {
+                badge.textContent = st[0];
+                badge.className = 'stk-badge stk-badge-' + st[1] + ' badge px-3 py-2 rounded-pill';
+            }
+
+            const bar = el('bar-isi');
+            if (bar) {
+                bar.style.width = persen + '%';
+                bar.setAttribute('aria-valuenow', persen);
+                bar.className = 'progress-bar rounded-pill stk-progress-' + st[1];
+            }
 
         } catch (error) {
             console.error('Monitoring sensor:', error);
@@ -1082,8 +1103,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     updateSensorData();
-    setInterval(updateSensorData, 5000);
-
+    setInterval(updateSensorData, 2000);
 });
 </script>
 

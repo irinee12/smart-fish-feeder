@@ -93,8 +93,16 @@
             </tr>
 
             <tr>
+                <td><strong>Periode</strong></td>
+                <td>{{ !empty($tanggal) ? \Carbon\Carbon::parse($tanggal)->format('d M Y') : 'Semua tanggal' }}</td>
+            </tr>
+            <tr>
                 <td><strong>Total Data</strong></td>
                 <td>{{ count($riwayat) }} data</td>
+            </tr>
+            <tr>
+                <td><strong>Total Pakan Keluar</strong></td>
+                <td>{{ number_format($riwayat->sum(fn ($r) => $r->gram_keluar), 1, ',', '.') }} g</td>
             </tr>
         </table>
     </div>
@@ -106,8 +114,11 @@
                 <th>No.</th>
                 <th>Tanggal</th>
                 <th>Waktu</th>
-                <th>Porsi</th>
-                <th>Status</th>
+                <th>Target</th>
+                <th>Keluar</th>
+                <th>Tertahan</th>
+                <th>Selisih</th>
+                <th>Hasil</th>
             </tr>
         </thead>
 
@@ -117,16 +128,19 @@
 
                 <tr>
                     <td>{{ $index + 1 }}</td>
-                    <td>{{ $item->tanggal }}</td>
-                    <td>{{ $item->waktu }}</td>
-                    <td>{{ $item->porsi }} g</td>
-                    <td>{{ $item->status }}</td>
+                    <td>{{ $item->tanggal->format('d M Y') }}</td>
+                    <td>{{ substr($item->waktu, 0, 5) }}</td>
+                    <td>{{ number_format((float) $item->porsi_target, 1, ',', '.') }} g</td>
+                    <td>{{ number_format($item->gram_keluar, 1, ',', '.') }} g</td>
+                    <td>{{ number_format((float) ($item->sisa_g ?? 0), 1, ',', '.') }} g</td>
+                    <td>{{ ($item->selisih_gram > 0 ? '+' : '') . number_format($item->selisih_gram, 1, ',', '.') }} g</td>
+                    <td>{{ $item->hasil[0] }}</td>
                 </tr>
 
             @empty
 
                 <tr>
-                    <td colspan="5" class="empty">
+                    <td colspan="8" class="empty">
                         Belum ada data riwayat pemberian pakan.
                     </td>
                 </tr>

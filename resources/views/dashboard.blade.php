@@ -21,12 +21,21 @@
     $targetHariIni = $targetHariIni ?? 0;
     $selisihHariIni = $selisihHariIni ?? 0;
     $selisihPct = $selisihPct ?? 0;
+    $keluarHariIni = $keluarHariIni ?? $aktualHariIni;
+    $tertahanHariIni = $tertahanHariIni ?? 0;
+    $targetBerikutnya = $targetBerikutnya ?? null;
+    $jamBerikutnya = $jamBerikutnya ?? null;
+    $targetBesok = $targetBesok ?? false;
+    $fmtG = fn ($v) => rtrim(rtrim(number_format((float) $v, 1, ',', '.'), '0'), ',');
 
     $stHariIni = $stHariIni ?? 'Belum ada data';
     $stHariIniColor = $stHariIniColor ?? 'secondary';
 
     $sisaHari = $sisaHari ?? ($sisa_hari_gudang ?? null);
     $gudangOk = $gudangOk ?? false;
+    $sisaStokKg = $sisaStokKg ?? null;
+    $perluBeliKg = $perluBeliKg ?? null;
+    $nSma = $nSma ?? 7;
 
     $gLabel = $gLabel ?? [];
     $gTarget = $gTarget ?? [];
@@ -39,7 +48,7 @@
             return ['Belum diberikan', 'secondary', 0, 0];
         }
 
-        $selisih = max(0, $target - $aktual);
+        $selisih = round(abs($target - $aktual), 1);
         $persen = round(($selisih / $target) * 100, 1);
 
         if ($persen <= 5) {
@@ -87,8 +96,8 @@
     | Sesuaikan dengan hasil kalibrasi wadah sebenarnya.
     */
 
-    $jarakMax = 30;
-    $jarakMin = 5;
+    $jarakMax = 23; // wadah kosong (sama dengan menu Stok Pakan)
+    $jarakMin = 0;  // wadah penuh
     $kapasitasMax = 6;
 
     $stokKg = 0;
@@ -98,7 +107,7 @@
     if ($dataSensorAktif) {
         $jarak = (float) $latest->jarak;
 
-        if ($jarak >= 0 && $jarak <= $jarakMax) {
+        if ($jarak >= 0) {
             $rentang = $jarakMax - $jarakMin;
 
             $persentase = (($jarakMax - $jarak) / $rentang) * 100;
@@ -334,17 +343,18 @@
 
                     <div>
                         <h2 class="fw-bold mb-1 text-dark">
-                            {{ $aktualHariIni }}
+                            {{ $fmtG($keluarHariIni) }}
                             <span class="fs-6 fw-normal text-muted">g keluar</span>
                         </h2>
 
                         <div class="small text-muted">
-                            Target: <b class="text-dark">{{ $targetHariIni }} g</b>
+                            Target{{ $jamBerikutnya ? ' (' . $jamBerikutnya . ($targetBesok ? ', besok' : '') . ')' : '' }}:
+                            <b class="text-dark">{{ $targetBerikutnya !== null ? $fmtG($targetBerikutnya) . ' g' : '—' }}</b>
                         </div>
 
                         <div class="small text-muted">
                             Tertahan:
-                            <b class="text-dark">{{ $selisihHariIni }} g ({{ $selisihPct }}%)</b>
+                            <b class="text-dark" title="Sisa pakan di wadah timbang setelah pakan keluar, dicatat untuk stok gudang">{{ $fmtG($tertahanHariIni) }} g</b>
                         </div>
 
                         <span class="badge text-bg-{{ $stHariIniColor }} mt-2 {{ $stHariIniColor === 'warning' ? 'text-dark' : '' }}">
@@ -405,11 +415,19 @@
                         </h2>
 
                         @if($sisaHari === null)
-                            <small class="text-muted">Belum cukup data (SMA)</small>
+                            <small class="text-muted d-block">
+                                {{ $sisaStokKg === null ? 'Belum ada stok dicatat' : 'Belum cukup data (SMA)' }}
+                            </small>
                         @elseif($gudangOk)
-                            <small class="text-success fw-bold">Stok cukup</small>
+                            <small class="text-success fw-bold d-block">Stok cukup untuk 30 hari</small>
                         @else
-                            <small class="text-danger fw-bold">Perlu beli pakan</small>
+                            <small class="text-danger fw-bold d-block">Perlu beli ± {{ $perluBeliKg }} kg</small>
+                        @endif
+
+                        @if($sisaStokKg !== null)
+                            <small class="text-muted d-block">
+                                Sisa gudang {{ number_format($sisaStokKg, 2, ',', '.') }} kg · SMA {{ $nSma }} hari
+                            </small>
                         @endif
                     </div>
                 </div>
@@ -692,8 +710,8 @@
 document.addEventListener('DOMContentLoaded', function () {
 
     const KAPASITAS_MAX = 6;
-    const JARAK_MAX = 30;
-    const JARAK_MIN = 5;
+    const JARAK_MAX = 23; // wadah kosong (sama dengan menu Stok Pakan)
+    const JARAK_MIN = 0;  // wadah penuh
 
     const statusElement = document.getElementById('status-koneksi');
     const dotElement = document.getElementById('status-dot');
@@ -870,7 +888,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const jarak = Number(data.jarak);
 
             // Periksa nilai sensor.
-            if (!Number.isFinite(jarak) || jarak < 0 || jarak > JARAK_MAX) {
+            if (!Number.isFinite(jarak) || jarak < 0) {
                 tampilkanOffline();
                 return;
             }

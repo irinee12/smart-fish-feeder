@@ -79,6 +79,7 @@ class IoTController extends Controller
             'jarak'        => 'required|numeric|min:0|max:400',
             'persen_isi'   => 'nullable|numeric|between:0,100',
             'status_fuzzy' => 'nullable|string',
+            'berat_g'      => 'nullable|numeric|between:-1000,10000',
         ]);
 
         if ($validator->fails()) {
@@ -98,6 +99,7 @@ class IoTController extends Controller
             'jarak_sensor'     => $request->jarak,
             'stok_gram'        => $estimasiGram,
             'persentase_stok'  => $persen,
+            'berat_g'          => $request->input('berat_g'),
             'waktu_pembacaan'  => now(),
             'created_at'       => now(),
             'updated_at'       => now(),
@@ -149,6 +151,8 @@ class IoTController extends Controller
             'waktu'            => $waktuPakan,
             'porsi_target'     => (float) $request->input('target_g', 0),
             'porsi_aktual'     => (float) $request->input('aktual_g', 0),
+            // Sisa pakan yang tertahan di wadah timbang (0-10 g), dicatat untuk perhitungan stok.
+            'sisa_g'           => $request->has('sisa_g') ? max(0, (float) $request->input('sisa_g')) : null,
             'status'           => ((int) $request->input('error', 0) === 0) ? 'berhasil' : 'gagal',
             'created_at'       => now(),
             'updated_at'       => now(),

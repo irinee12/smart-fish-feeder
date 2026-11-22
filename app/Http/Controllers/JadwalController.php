@@ -12,7 +12,13 @@ class JadwalController extends Controller
     {
         // Ambil data dari database, urutkan berdasarkan waktu
         $jadwals = JadwalPakan::orderBy('waktu', 'asc')->get();
-        return view('Jadwal', compact('jadwals'));
+
+        // Sisa stok gudang: sama persis dengan "Sisa Persediaan" di menu Prediksi
+        $stok = \App\Models\StokGudang::ringkasan();
+        $sisaStokKg = $stok['sisa'];
+        $keluarHariIniG = \App\Models\RiwayatPakan::totalGramKeluar();
+
+        return view('Jadwal', compact('jadwals', 'sisaStokKg', 'keluarHariIniG'));
     }
 
     public function apiEsp32()

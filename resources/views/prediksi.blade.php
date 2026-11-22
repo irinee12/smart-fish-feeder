@@ -1,101 +1,29 @@
-
 @extends('layouts.app')
 
-@section('title', 'Prediksi Refill Pakan Gudang - Smart Fish Feeder')
+@section('title', 'Prediksi Refill Pakan - Smart Fish Feeder')
 
 @section('content')
 
 @php
-    $nSma = (int) ($nSma ?? 7);
-    $stokAwalKg = $stokAwalKg ?? null;
-    $konsumsiSejakInput = (float) ($konsumsiSejakInput ?? 0);
-    $dataKonsumsi = collect($dataKonsumsi ?? []);
-
     $fmt = fn($v, $d = 2) => number_format($v, $d, ',', '.');
 
-    // Persediaan tercatat berkurang saat pakan benar-benar digunakan
-    $stokKg = $stokAwalKg !== null
-        ? max((float) $stokAwalKg - ($konsumsiSejakInput / 1000), 0)
-        : null;
-
-    // Data konsumsi dalam gram
-    $vals = $dataKonsumsi->pluck('konsumsi')
-        ->map(fn($v) => (float) $v)
-        ->values()
-        ->all();
-
-    $rows = [];
-
-    foreach ($dataKonsumsi->values() as $i => $d) {
-        $awal = max(0, $i + 1 - $nSma);
-        $jumlahData = $i + 1 - $awal;
-
-        $sma = $jumlahData > 0
-            ? array_sum(array_slice($vals, $awal, $jumlahData)) / $jumlahData
-            : null;
-
-        $rows[] = [
-            'tanggal' => $d['tanggal'],
-            'konsumsi' => $vals[$i],
-            'ada_data' => $d['ada_data'] ?? true,
-            'sma' => $sma
-        ];
-    }
-
-    $rows = collect($rows);
-
-    // SMA terkini menggunakan data periode yang dipilih
-    $dataSma = $rows
-        ->where('ada_data', true)
-        ->take(-$nSma);
-
-    $smaTerkini = $dataSma->count() > 0
-        ? $dataSma->avg('konsumsi')
-        : null;
-
-    $smaKg = $smaTerkini !== null
-        ? $smaTerkini / 1000
-        : null;
-
-    // Total konsumsi hari ini
-    $konsumsiHariIni = $rows->last()['konsumsi'] ?? 0;
-
-    $konsumsiHariIniKg = $konsumsiHariIni / 1000;
-
-    // Estimasi ketahanan persediaan
-    $estimasiHari = ($stokKg !== null && $smaKg > 0)
-        ? $stokKg / $smaKg
-        : null;
-
-    // Status persediaan untuk informasi, bukan perintah pembelian
-    if ($stokKg === null) {
-        $status = 'Belum ada data stok';
-        $statusClass = 'secondary';
-        $statusIcon = 'bi-info-circle';
-    } elseif ($smaKg === null || $smaKg <= 0) {
-        $status = 'Menunggu data konsumsi';
-        $statusClass = 'secondary';
-        $statusIcon = 'bi-clock-history';
-    } elseif ($estimasiHari <= 3) {
-        $status = 'Persediaan terbatas';
-        $statusClass = 'danger';
-        $statusIcon = 'bi-exclamation-circle';
-    } elseif ($estimasiHari <= 7) {
-        $status = 'Persediaan mulai menipis';
-        $statusClass = 'warning';
-        $statusIcon = 'bi-exclamation-triangle';
+    if ($sisaKg === null) {
+        $statusClass = 'secondary'; $statusIcon = 'bi-info-circle';
+        $judul = 'Belum ada stok tercatat';
+        $isi   = 'Catat dulu pakan yang baru dibeli pada form di bawah.';
+    } elseif ($smaKg === null) {
+        $statusClass = 'secondary'; $statusIcon = 'bi-clock-history';
+        $judul = 'Menunggu data pemakaian';
+        $isi   = 'Prediksi muncul setelah alat mencatat pemberian pakan minimal 1 hari penuh.';
+    } elseif ($perluBeliKg > 0) {
+        $statusClass = $hariTahan <= 7 ? 'danger' : 'warning'; $statusIcon = 'bi-cart-plus';
+        $judul = 'Disarankan membeli sekitar ' . $perluBeliKg . ' kg';
+        $isi   = 'Stok sekarang ' . $fmt($sisaKg) . ' kg hanya bertahan sekitar ' . $fmt($hariTahan, 0) . ' hari.';
     } else {
-        $status = 'Persediaan mencukupi';
-        $statusClass = 'success';
-        $statusIcon = 'bi-check-circle';
+        $statusClass = 'success'; $statusIcon = 'bi-check-circle';
+        $judul = 'Persediaan cukup, belum perlu membeli';
+        $isi   = 'Stok ' . $fmt($sisaKg) . ' kg cukup untuk sekitar ' . $fmt($hariTahan, 0) . ' hari (± ' . $fmt($mingguTahan, 1) . ' minggu).';
     }
-
-    $labels = $rows->pluck('tanggal')->values();
-    $aktual = $rows->pluck('konsumsi')->map(fn($v) => round($v / 1000, 3))->values();
-
-    $smaChart = $rows->pluck('sma')
-        ->map(fn($v) => $v !== null ? round($v / 1000, 3) : null)
-        ->values();
 @endphp
 
 <style>
@@ -447,376 +375,208 @@
         grid-template-columns: 1fr;
     }
 }
+
+.step-row{display:flex;gap:16px;padding:20px 0;border-bottom:1px solid #e9f1f5}
+.step-row:last-child{border-bottom:0;padding-bottom:4px}
+.step-no{flex:0 0 38px;height:38px;border-radius:50%;display:grid;place-items:center;font-weight:800;color:#fff;background:linear-gradient(135deg,#1296c4,#0a6a8f)}
+.step-body{min-width:0;flex:1}
+.step-title{font-weight:800;font-size:15px;margin-bottom:2px}
+.step-rumus{font-size:12px;color:#668091;margin-bottom:8px}
+.step-hitung{font-size:15px;background:#f2f9fc;border:1px solid #dfedf3;border-radius:10px;padding:11px 14px;overflow-wrap:anywhere}
+.step-hitung b{color:#0a6a8f;font-size:17px}
 </style>
 
 <div class="prediction-page">
 
-    {{-- HEADER --}}
     <div class="prediction-hero">
         <div class="hero-content">
-            <div class="hero-icon">
-                <i class="bi bi-boxes"></i>
-            </div>
+            <div class="hero-icon"><i class="bi bi-boxes"></i></div>
             <div>
-                <h4>Prediksi Refill Pakan Gudang</h4>
-                <p>Monitoring persediaan dan analisis konsumsi pakan menggunakan metode SMA.</p>
+                <h4>Prediksi Refill Pakan</h4>
+                <p>Berapa lama stok gudang bertahan dan kapan harus beli lagi, dihitung dengan metode SMA.</p>
             </div>
         </div>
     </div>
 
     <div class="prediction-container">
 
-        {{-- NOTIFIKASI --}}
         @if(session('success'))
-            <div class="alert alert-success">
-                <i class="bi bi-check-circle me-2"></i>
-                {{ session('success') }}
-            </div>
+            <div class="alert alert-success"><i class="bi bi-check-circle me-2"></i>{{ session('success') }}</div>
         @endif
-
         @if($errors->any())
-            <div class="alert alert-danger">
-                {{ $errors->first() }}
-            </div>
+            <div class="alert alert-danger">{{ $errors->first() }}</div>
         @endif
 
-        {{-- STATUS PERSEDIAAN --}}
+        {{-- JAWABAN UTAMA --}}
         <div class="status-box {{ $statusClass }}">
-            <div class="status-icon">
-                <i class="bi {{ $statusIcon }}"></i>
-            </div>
+            <div class="status-icon"><i class="bi {{ $statusIcon }}"></i></div>
             <div>
-                <strong>{{ $status }}</strong>
-                <p>
-                    @if($estimasiHari !== null)
-                        Estimasi total persediaan dapat bertahan sekitar
-                        {{ $fmt($estimasiHari, 1) }} hari berdasarkan rata-rata konsumsi.
-                    @else
-                        Data persediaan atau konsumsi belum mencukupi untuk dianalisis.
-                    @endif
-                </p>
+                <strong style="font-size:16px">{{ $judul }}</strong>
+                <p>{{ $isi }}</p>
             </div>
         </div>
 
-        {{-- FORM TAMBAH STOK --}}
+        {{-- CARA MENGHITUNG, 4 LANGKAH --}}
         <div class="section-card">
-            <h5 class="section-title">
-                <i class="bi bi-plus-circle"></i>
-                Tambah Stok Gudang
-            </h5>
+            <h5 class="section-title"><i class="bi bi-list-ol"></i>Cara Menghitungnya (4 Langkah)</h5>
+
+            {{-- LANGKAH 1 --}}
+            <div class="step-row">
+                <div class="step-no">1</div>
+                <div class="step-body">
+                    <div class="step-title">Berapa stok gudang sekarang?</div>
+                    <div class="step-rumus">Stok = total pakan dibeli − total pakan yang sudah keluar</div>
+                    <div class="step-hitung">
+                        @if($sisaKg !== null)
+                            {{ $fmt($masukKg) }} kg − {{ $fmt($keluarKg) }} kg = <b>{{ $fmt($sisaKg) }} kg</b>
+                        @else
+                            Belum ada pakan yang dicatat.
+                        @endif
+                    </div>
+                </div>
+            </div>
+
+            {{-- LANGKAH 2 --}}
+            <div class="step-row">
+                <div class="step-no">2</div>
+                <div class="step-body">
+                    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                        <div>
+                            <div class="step-title">Rata-rata pakan keluar per hari (SMA)</div>
+                            <div class="step-rumus">SMA = (hari 1 + hari 2 + … ) ÷ jumlah hari, memakai {{ $nSma }} hari terakhir. Hari ini tidak ikut karena belum selesai.</div>
+                        </div>
+                        <form method="GET" action="{{ url()->current() }}">
+                            <select name="n_sma" class="sma-selector" onchange="this.form.submit()">
+                                <option value="3" {{ $nSma == 3 ? 'selected' : '' }}>SMA 3 hari</option>
+                                <option value="7" {{ $nSma == 7 ? 'selected' : '' }}>SMA 7 hari</option>
+                            </select>
+                        </form>
+                    </div>
+
+                    <div class="step-hitung">
+                        @if($smaGram !== null)
+                            ({{ $rincian->map(fn($r) => $fmt($r['gram'], 1))->implode(' + ') }}) ÷ {{ $jumlahData }}
+                            = <b>{{ $fmt($smaGram, 1) }} g/hari</b>
+                            ({{ $fmt($smaKg, 3) }} kg/hari)
+                        @else
+                            Belum ada hari lengkap yang tercatat.
+                        @endif
+                    </div>
+
+                    @if($rincian->count() > 0)
+                        <div class="table-responsive mt-2">
+                            <table class="table table-sm mb-0" style="max-width:420px">
+                                <thead><tr><th>Tanggal</th><th>Pakan keluar</th></tr></thead>
+                                <tbody>
+                                    @foreach($rincian as $r)
+                                        <tr>
+                                            <td>
+                                                {{ $r['tanggal'] }}
+                                                @if($r['dummy'])<span class="badge bg-secondary ms-1">contoh</span>@endif
+                                            </td>
+                                            <td>{{ $fmt($r['gram'], 1) }} g</td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @endif
+
+                    @if($smaGram !== null && $jumlahData < $nSma)
+                        <div class="info-text">Baru ada {{ $jumlahData }} hari data, jadi rata-rata memakai {{ $jumlahData }} hari. Makin banyak hari tercatat, makin akurat.</div>
+                    @endif
+                    @if($adaDummy)
+                        <div class="info-text">Baris bertanda "contoh" adalah data uji (<code>php artisan sma:dummy</code>), hanya dipakai di langkah ini.</div>
+                    @endif
+                </div>
+            </div>
+
+            {{-- LANGKAH 3 --}}
+            <div class="step-row">
+                <div class="step-no">3</div>
+                <div class="step-body">
+                    <div class="step-title">Stok akan bertahan berapa lama?</div>
+                    <div class="step-rumus">Lama bertahan = stok gudang ÷ rata-rata per hari</div>
+                    <div class="step-hitung">
+                        @if($hariTahan !== null)
+                            {{ $fmt($sisaKg) }} kg ÷ {{ $fmt($smaKg, 3) }} kg/hari =
+                            <b>{{ $fmt($hariTahan, 0) }} hari</b> (± {{ $fmt($mingguTahan, 1) }} minggu)<br>
+                            <small class="text-muted">Perkiraan habis sekitar {{ $tanggalHabis->translatedFormat('d F Y') }}</small>
+                        @else
+                            Menunggu langkah 1 dan 2.
+                        @endif
+                    </div>
+                </div>
+            </div>
+
+            {{-- LANGKAH 4 --}}
+            <div class="step-row">
+                <div class="step-no">4</div>
+                <div class="step-body">
+                    <div class="step-title">Perlu beli berapa kg?</div>
+                    <div class="step-rumus">Perlu beli = (rata-rata per hari × {{ $hariKebutuhan }} hari) − stok gudang. Jika hasilnya 0 atau minus, belum perlu beli.</div>
+                    <div class="step-hitung">
+                        @if($kebutuhanKg !== null && $sisaKg !== null)
+                            ({{ $fmt($smaKg, 3) }} × {{ $hariKebutuhan }}) − {{ $fmt($sisaKg) }}
+                            = {{ $fmt($kebutuhanKg - $sisaKg) }} kg →
+                            @if($perluBeliKg > 0)
+                                <b>beli ± {{ $perluBeliKg }} kg</b>
+                            @else
+                                <b>belum perlu beli</b>
+                            @endif
+                        @else
+                            Menunggu langkah 1 dan 2.
+                        @endif
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{-- CATAT PAKAN DIBELI --}}
+        <div class="section-card">
+            <h5 class="section-title"><i class="bi bi-plus-circle"></i>Catat Pakan Baru Dibeli</h5>
 
             <form method="POST" action="{{ route('prediksi.update') }}">
                 @csrf
-
                 <div class="form-grid">
-
                     <div>
-                        <label for="tanggal_stok">Tanggal Penambahan</label>
-                        <input type="date"
-                               class="form-control"
-                               id="tanggal_stok"
-                               name="tanggal_stok"
-                               value="{{ old('tanggal_stok', now()->format('Y-m-d')) }}"
-                               required>
+                        <label for="tanggal_stok">Tanggal Beli</label>
+                        <input type="date" class="form-control" id="tanggal_stok" name="tanggal_stok"
+                               value="{{ old('tanggal_stok', now()->format('Y-m-d')) }}" required>
                     </div>
-
                     <div>
-                        <label for="jumlah_stok_kg">Jumlah Pakan Masuk (KG)</label>
-                        <input type="number"
-                               class="form-control"
-                               id="jumlah_stok_kg"
-                               name="jumlah_stok_kg"
-                               step="0.01"
-                               min="0.01"
-                               placeholder="Contoh: 50"
-                               value="{{ old('jumlah_stok_kg') }}"
-                               required>
+                        <label for="jumlah_stok_kg">Jumlah (kg)</label>
+                        <input type="number" class="form-control" id="jumlah_stok_kg" name="jumlah_stok_kg"
+                               step="0.01" min="0.01" placeholder="Contoh: 50"
+                               value="{{ old('jumlah_stok_kg') }}" required>
                     </div>
-
-                    <button type="submit" class="btn-add-stock">
-                        <i class="bi bi-plus-lg me-2"></i>
-                        Tambah Stok
-                    </button>
-
+                    <button type="submit" class="btn-add-stock"><i class="bi bi-plus-lg me-2"></i>Simpan</button>
                 </div>
             </form>
 
             <div class="info-text">
-                <i class="bi bi-info-circle me-1"></i>
-                Penambahan stok dicatat sebagai transaksi baru. Pemindahan pakan
-                dari gudang ke wadah IoT tidak dihitung sebagai konsumsi.
-                Pengurangan persediaan dilakukan berdasarkan pakan yang benar-benar
-                dikeluarkan saat jadwal pemberian pakan.
-            </div>
-        </div>
-
-        {{-- RINGKASAN PERSEDIAAN --}}
-        <h5 class="section-title">
-            <i class="bi bi-speedometer2"></i>
-            Ringkasan Persediaan
-        </h5>
-
-        <div class="metric-grid">
-
-            <div class="metric-card">
-                <div class="metric-icon">
-                    <i class="bi bi-box-seam"></i>
-                </div>
-                <div class="metric-label">Total Persediaan Tercatat</div>
-                <div class="metric-value stock-value">
-                    {{ $stokKg !== null ? $fmt($stokKg).' kg' : '—' }}
-                </div>
-                <div class="metric-description">
-                    Gudang dan wadah IoT
-                </div>
+                Isi setiap kali membeli pakan, misalnya satu karung 50 kg. Setelah itu stok berkurang otomatis
+                sesuai pakan yang benar-benar keluar dari alat. Tidak perlu diisi ulang.
             </div>
 
-            <div class="metric-card">
-                <div class="metric-icon">
-                    <i class="bi bi-activity"></i>
-                </div>
-                <div class="metric-label">Konsumsi Hari Ini</div>
-                <div class="metric-value">
-                    {{ $fmt($konsumsiHariIniKg).' kg' }}
-                </div>
-                <div class="metric-description">
-                    Berdasarkan data load cell
-                </div>
-            </div>
-
-            <div class="metric-card">
-                <div class="metric-icon">
-                    <i class="bi bi-graph-up"></i>
-                </div>
-                <div class="metric-label">Rata-rata Konsumsi Harian</div>
-                <div class="metric-value">
-                    {{ $smaKg !== null ? $fmt($smaKg).' kg' : '—' }}
-                </div>
-                <div class="metric-description">
-                    Metode SMA {{ $nSma }} hari
-                </div>
-            </div>
-
-            <div class="metric-card">
-                <div class="metric-icon">
-                    <i class="bi bi-hourglass-split"></i>
-                </div>
-                <div class="metric-label">Estimasi Ketahanan Persediaan</div>
-                <div class="metric-value">
-                    {{ $estimasiHari !== null ? $fmt($estimasiHari,1).' hari' : '—' }}
-                </div>
-                <div class="metric-description">
-                    Berdasarkan rata-rata konsumsi
-                </div>
-            </div>
-
-        </div>
-
-        {{-- ANALISIS SMA --}}
-        <div class="section-card">
-
-            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
-                <h5 class="section-title mb-0">
-                    <i class="bi bi-calculator"></i>
-                    Analisis Konsumsi Metode SMA
-                </h5>
-
-                <form method="GET" action="{{ url()->current() }}">
-                    <select name="n_sma"
-                            class="sma-selector"
-                            onchange="this.form.submit()">
-                        <option value="3" {{ $nSma == 3 ? 'selected' : '' }}>
-                            SMA 3 Hari
-                        </option>
-                        <option value="7" {{ $nSma == 7 ? 'selected' : '' }}>
-                            SMA 7 Hari
-                        </option>
-                    </select>
-                </form>
-            </div>
-
-            <div class="row g-3">
-
-                <div class="col-md-6">
-                    <div class="sma-box">
-                        <small>Rata-rata Konsumsi Harian SMA {{ $nSma }}</small>
-                        <strong>
-                            {{ $smaKg !== null ? $fmt($smaKg).' kg/hari' : 'Menunggu data' }}
-                        </strong>
-                    </div>
-                </div>
-
-                <div class="col-md-6">
-                    <div class="sma-box">
-                        <small>Jumlah Data Konsumsi yang Dianalisis</small>
-                        <strong>{{ $dataSma->count() }} hari</strong>
-                    </div>
-                </div>
-
-            </div>
-
-            <div class="info-text">
-                SMA menghitung rata-rata konsumsi berdasarkan data harian
-                selama 3 atau 7 hari terakhir. Hasilnya digunakan untuk
-                menganalisis pola penggunaan dan ketahanan persediaan pakan.
-            </div>
-        </div>
-
-        {{-- GRAFIK --}}
-        <div class="section-card">
-            <h5 class="section-title">
-                <i class="bi bi-bar-chart-line"></i>
-                Grafik Konsumsi Aktual dan SMA
-            </h5>
-
-            @if($rows->count() > 0)
-                <div class="chart-container">
-                    <canvas id="grafikKonsumsi"></canvas>
-                </div>
-                <div class="info-text">
-                    Garis pertama menunjukkan konsumsi aktual harian.
-                    Garis kedua menunjukkan hasil perhitungan rata-rata SMA.
-                </div>
-            @else
-                <div class="text-center text-muted py-5">
-                    <i class="bi bi-bar-chart fs-1 d-block mb-3"></i>
-                    Belum ada data konsumsi untuk ditampilkan.
+            @if($riwayatStok->count() > 0)
+                <div class="table-responsive mt-3">
+                    <table class="table table-sm mb-0" style="max-width:420px">
+                        <thead><tr><th>Pembelian terakhir</th><th>Jumlah</th></tr></thead>
+                        <tbody>
+                            @foreach($riwayatStok as $b)
+                                <tr>
+                                    <td>{{ $b->tanggal->format('d M Y') }}</td>
+                                    <td>{{ $fmt((float) $b->jumlah_kg) }} kg</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
                 </div>
             @endif
         </div>
 
-        {{-- RIWAYAT KONSUMSI --}}
-        <div class="section-card">
-            <h5 class="section-title">
-                <i class="bi bi-clock-history"></i>
-                Riwayat Konsumsi Harian
-            </h5>
-
-            <div class="table-responsive">
-                <table class="table table-hover align-middle">
-                    <thead>
-                        <tr>
-                            <th>No.</th>
-                            <th>Tanggal</th>
-                            <th>Konsumsi Aktual</th>
-                            <th>SMA {{ $nSma }} Hari</th>
-                            <th>Status Data</th>
-                        </tr>
-                    </thead>
-
-                    <tbody>
-                        @forelse($rows->reverse()->values() as $index => $r)
-                            <tr>
-                                <td>{{ $index + 1 }}</td>
-                                <td>{{ $r['tanggal'] }}</td>
-                                <td>
-                                    <strong>{{ $fmt($r['konsumsi'],0) }} gram</strong>
-                                </td>
-                                <td>
-                                    {{ $r['sma'] !== null
-                                        ? $fmt($r['sma'],0).' gram'
-                                        : '—' }}
-                                </td>
-                                <td>
-                                    @if($r['ada_data'])
-                                        <span class="badge bg-success">Tercatat</span>
-                                    @else
-                                        <span class="badge bg-warning text-dark">Belum ada data</span>
-                                    @endif
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="5" class="text-center text-muted py-5">
-                                    Belum ada riwayat konsumsi.
-                                </td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
     </div>
 </div>
-
-{{-- CHART JS --}}
-@if($rows->count() > 0)
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-
-    const canvas = document.getElementById('grafikKonsumsi');
-
-    if (!canvas) return;
-
-    new Chart(canvas, {
-        type: 'line',
-
-        data: {
-            labels: @json($labels),
-
-            datasets: [
-                {
-                    label: 'Konsumsi Aktual (kg)',
-                    data: @json($aktual),
-                    borderColor: '#1296c4',
-                    backgroundColor: 'rgba(18,150,196,.12)',
-                    fill: true,
-                    tension: .3,
-                    borderWidth: 2,
-                    pointRadius: 4
-                },
-                {
-                    label: 'SMA {{ $nSma }} Hari (kg)',
-                    data: @json($smaChart),
-                    borderColor: '#f59e0b',
-                    backgroundColor: '#f59e0b',
-                    fill: false,
-                    tension: .3,
-                    borderWidth: 2,
-                    pointRadius: 3,
-                    borderDash: [5,4]
-                }
-            ]
-        },
-
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-
-            interaction: {
-                intersect: false,
-                mode: 'index'
-            },
-
-            plugins: {
-                legend: {
-                    position: 'bottom'
-                }
-            },
-
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    title: {
-                        display: true,
-                        text: 'Konsumsi Pakan (kg)'
-                    }
-                },
-                x: {
-                    title: {
-                        display: true,
-                        text: 'Tanggal'
-                    }
-                }
-            }
-        }
-    });
-
-});
-</script>
-@endif
 
 @endsection

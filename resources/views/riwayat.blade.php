@@ -375,6 +375,15 @@
 
 </style>
 
+<style>
+.rwy-ringkasan{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.rwy-kotak{background:#fff;border:1px solid #e1ecf2;border-radius:14px;padding:18px 20px;box-shadow:0 2px 8px rgba(5,46,74,.04)}
+.rwy-kotak small{display:block;font-size:12px;font-weight:600;color:#668091;margin-bottom:6px}
+.rwy-kotak strong{display:block;font-size:24px;font-weight:800;color:#0f2a3a}
+.rwy-kotak span{font-size:11px;color:#8aa0ae}
+@media(max-width:700px){.rwy-ringkasan{grid-template-columns:1fr}}
+</style>
+
 <div class="rwy container-fluid px-0">
 
     {{-- =====================================================
@@ -412,41 +421,77 @@
         </div>
     </div>
 
-    {{-- BUNGKUS KONTEN DI BAWAHNYA DIBERI PADDING SUPAYA TIDAK IKUT MENEMPEL KE PINGGIR --}}
     <div class="px-4 pb-4">
 
         <div class="history-page">
 
-            {{-- 1. FILTER TANGGAL + TOMBOL EXPORT PDF --}}
+            {{-- 1. FILTER TANGGAL + EXPORT PDF --}}
             <div class="history-filter-card">
-                <div class="history-filter-left">
-                    <label class="form-label-custom">Filter Tanggal</label>
-                    <input type="date" class="form-input-custom" id="filterTanggal">
-                </div>
+                <form method="GET" action="{{ route('riwayat') }}" class="history-filter-left d-flex align-items-end gap-2 flex-wrap">
+                    <div>
+                        <label class="form-label-custom">Filter Tanggal</label>
+                        <input type="date" class="form-input-custom" name="tanggal" id="filterTanggal"
+                               value="{{ $tanggal }}" max="{{ now()->format('Y-m-d') }}"
+                               onchange="this.form.submit()">
+                    </div>
+                    @if($tanggal)
+                        <a href="{{ route('riwayat') }}" class="btn btn-outline-secondary btn-sm mb-1">Tampilkan semua</a>
+                    @endif
+                </form>
 
-                <a href="#" class="btn btn-primary d-flex align-items-center gap-2">
-                    <span class="history-export-icon">↓</span>
-                    <span>Export PDF</span>
-                </a>
+                <div class="d-flex gap-2 flex-wrap">
+                    <a href="{{ route('riwayat.export.csv', array_filter(['tanggal' => $tanggal])) }}"
+                       class="btn btn-primary d-flex align-items-center gap-2">
+                        <span class="history-export-icon">↓</span><span>Export Excel (CSV)</span>
+                    </a>
+                    <a href="{{ route('riwayat.export.pdf', array_filter(['tanggal' => $tanggal])) }}"
+                       class="btn btn-primary d-flex align-items-center gap-2">
+                        <span class="history-export-icon">↓</span><span>Export PDF</span>
+                    </a>
+                </div>
             </div>
 
-            {{-- 2. GRAFIK KARTU (KONDISI KOSONG) --}}
+            {{-- RINGKASAN --}}
+            <div class="rwy-ringkasan">
+                <div class="rwy-kotak">
+                    <small>Total pakan keluar</small>
+                    <strong>{{ number_format($ringkasan['keluar'], 1, ',', '.') }} g</strong>
+                </div>
+                <div class="rwy-kotak">
+                    <small>Jumlah pemberian</small>
+                    <strong>{{ $ringkasan['sesi'] }}</strong>
+                    <span>{{ $ringkasan['berhasil'] }} berhasil · {{ $ringkasan['gagal'] }} gagal</span>
+                </div>
+                <div class="rwy-kotak">
+                    <small>Ketepatan terhadap target</small>
+                    <strong>{{ $ringkasan['akurasi'] !== null ? number_format($ringkasan['akurasi'], 1, ',', '.') . '%' : '—' }}</strong>
+                    <span>100% = persis sesuai target</span>
+                </div>
+            </div>
+
+            {{-- 2. GRAFIK --}}
             <div class="history-chart-card">
                 <div class="history-card-title">Grafik Penggunaan Pakan</div>
-                <div class="history-card-description">Total pakan per hari (kg)</div>
+                <div class="history-card-description">Total pakan yang keluar per hari, {{ count($labelGrafik) }} hari terakhir (data asli dari alat, gram)</div>
 
-                <div class="history-empty-chart">
-                    <div class="history-empty-icon">📊</div>
-                    <strong>Belum ada data penggunaan pakan</strong>
-                    <span>Grafik akan tampil setelah data pemberian pakan tersedia.</span>
-                </div>
+                @if($adaGrafik)
+                    <div style="position:relative;height:280px">
+                        <canvas id="grafikRiwayat"></canvas>
+                    </div>
+                @else
+                    <div class="history-empty-chart">
+                        <div class="history-empty-icon">📊</div>
+                        <strong>Belum ada data penggunaan pakan</strong>
+                        <span>Grafik akan tampil setelah data pemberian pakan tersedia.</span>
+                    </div>
+                @endif
             </div>
 
-            {{-- 3. TABEL RIWAYAT (KONDISI KOSONG) --}}
+            {{-- 3. TABEL RIWAYAT --}}
             <div class="history-table-card">
                 <div class="history-table-header">
                     <div class="history-card-title" style="margin-bottom: 0;">Riwayat Pemberian Pakan</div>
-                    <span class="history-data-count">0 data ditemukan</span>
+                    <span class="history-data-count">{{ $riwayat->count() }} data ditemukan{{ $tanggal ? ' pada '.\Carbon\Carbon::parse($tanggal)->format('d M Y') : '' }}</span>
                 </div>
 
                 <div class="table-wrapper">
@@ -455,18 +500,36 @@
                             <tr>
                                 <th>Tanggal</th>
                                 <th>Waktu</th>
-                                <th>Porsi</th>
-                                <th>Status</th>
+                                <th>Target</th>
+                                <th>Keluar</th>
+                                <th>Tertahan</th>
+                                <th>Selisih</th>
+                                <th>Hasil</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr>
-                                <td colspan="4" class="history-empty-table">
-                                    <div class="history-empty-table-icon">📋</div>
-                                    <strong>Belum ada riwayat pakan</strong>
-                                    <span>Data akan muncul setelah sistem melakukan pemberian pakan.</span>
-                                </td>
-                            </tr>
+                            @forelse($riwayat as $r)
+                                @php [$hasilLabel, $hasilWarna] = $r->hasil; @endphp
+                                <tr>
+                                    <td>{{ $r->tanggal->format('d M Y') }}</td>
+                                    <td>{{ substr($r->waktu, 0, 5) }}</td>
+                                    <td>{{ number_format((float) $r->porsi_target, 1, ',', '.') }} g</td>
+                                    <td><strong>{{ number_format($r->gram_keluar, 1, ',', '.') }} g</strong></td>
+                                    <td>{{ number_format((float) ($r->sisa_g ?? 0), 1, ',', '.') }} g</td>
+                                    <td>{{ ($r->selisih_gram > 0 ? '+' : '') . number_format($r->selisih_gram, 1, ',', '.') }} g</td>
+                                    <td>
+                                        <span class="badge text-bg-{{ $hasilWarna }} {{ $hasilWarna === 'warning' ? 'text-dark' : '' }}">{{ $hasilLabel }}</span>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="7" class="history-empty-table">
+                                        <div class="history-empty-table-icon">📋</div>
+                                        <strong>Belum ada riwayat pakan</strong>
+                                        <span>Data akan muncul setelah sistem melakukan pemberian pakan.</span>
+                                    </td>
+                                </tr>
+                            @endforelse
                         </tbody>
                     </table>
                 </div>
@@ -476,4 +539,30 @@
 
     </div>
 </div>
+
+@if($adaGrafik)
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    new Chart(document.getElementById('grafikRiwayat'), {
+        type: 'bar',
+        data: {
+            labels: @json($labelGrafik),
+            datasets: [{
+                label: 'Pakan keluar (g)',
+                data: @json($dataGrafik),
+                backgroundColor: 'rgba(18,150,196,.75)',
+                borderRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true, title: { display: true, text: 'gram' } } }
+        }
+    });
+});
+</script>
+@endif
 @endsection

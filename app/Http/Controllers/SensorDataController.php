@@ -11,9 +11,7 @@ class SensorDataController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'jarak'        => 'required|numeric|min:0|max:400',
-            'persen_isi'   => 'nullable|numeric',
-            'status_fuzzy' => 'nullable|string',
+            'jarak' => 'required|numeric|min:0|max:400',
         ]);
 
         $id = DB::table('sensor_data')->insertGetId([
@@ -24,7 +22,7 @@ class SensorDataController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Data sensor berhasil disimpan',
-            'id'      => $id,
+            'id' => $id,
         ], 200);
     }
 
@@ -38,21 +36,20 @@ class SensorDataController extends Controller
         $sensorTerhubung = false;
         $umurData = null;
 
-        if ($data) {
-            // Prioritaskan created_at (format UTC standar Laravel) agar kebal selisih timezone
-            $waktuRef = $data->created_at ?? $data->waktu_pembacaan;
+        if ($data && !empty($data->waktu_pembacaan)) {
+            $waktuTerakhir = Carbon::parse($data->waktu_pembacaan);
+            $umurData = now()->timestamp - $waktuTerakhir->timestamp;
 
-            if (!empty($waktuRef)) {
-                $waktuTerakhir = Carbon::parse($waktuRef);
-                $umurData = abs(now()->diffInSeconds($waktuTerakhir));
-
-                // Toleransi 180 detik (3 menit) agar status tidak putus saat ESP32 
-                // memblokir komunikasi HTTP selama proses menimbang & menuang pakan (ISI/SETTLE/ALIR)
-                $sensorTerhubung = $umurData <= 180;
-            }
+            // Anggap terhubung jika ada data baru dalam 30 detik terakhir
+            $sensorTerhubung = $umurData >= 0 && $umurData <= 30;
         }
 
-        // Format ulang agar kompatibel dengan field tabel lama maupun baru
+        // SMA-5 load cell dihitung di ESP32 (10x/detik), lalu dikirim sebagai berat_g.
+        // Tidak di-SMA ulang di sini supaya tidak lag.
+        $beratSma = ($data && $data->berat_g !== null)
+            ? round((float) $data->berat_g, 1)
+            : null;
+
         $formattedData = $data ? [
             'id'              => $data->id,
             'jarak'           => $data->jarak_sensor,
@@ -60,6 +57,8 @@ class SensorDataController extends Controller
             'stok_gram'       => $data->stok_gram,
             'stok_kg'         => round($data->stok_gram / 1000, 2),
             'persentase_stok' => $data->persentase_stok,
+            'berat_g'         => $data->berat_g ?? null,
+            'berat_sma'       => $beratSma,
             'waktu'           => $data->waktu_pembacaan,
             'waktu_pembacaan' => $data->waktu_pembacaan,
         ] : null;

@@ -131,8 +131,17 @@
 
             {{-- TOTAL PAKAN --}}
             <div class="jdw-total card-footer border-top p-3 px-4 d-flex justify-content-end align-items-center">
-                <span class="text-muted me-2">Total pakan hari ini:</span>
-                <strong class="text-dark fs-6">0 g (0,00 kg)</strong>
+                <span class="text-muted me-2">Sisa pakan gudang:</span>
+                <strong class="text-dark fs-6">
+                    @if(($sisaStokKg ?? null) !== null)
+                        {{ number_format($sisaStokKg, 2, ',', '.') }} kg
+                    @else
+                        Belum ada stok dicatat
+                    @endif
+                </strong>
+                <small class="text-muted ms-3">
+                    (keluar hari ini: {{ number_format($keluarHariIniG ?? 0, 0, ',', '.') }} g)
+                </small>
             </div>
         </div>
 

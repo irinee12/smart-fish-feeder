@@ -25,6 +25,7 @@ Route::get('/', function () {
 
 Route::get('/api/esp32/jadwal', [JadwalController::class, 'apiEsp32'])
     ->name('api.esp32.jadwal');
+
 // ======================================================
 // LOGIN
 // ======================================================
@@ -53,7 +54,6 @@ Route::middleware('auth')->group(function () {
 
     Route::middleware('role:penjaga1')->group(function () {
 
-        // Route Dashboard memanggil DashboardController dan diberi nama 'dashboard'
         Route::get('/dashboard', [DashboardController::class, 'index'])
             ->name('dashboard');
 
@@ -67,44 +67,52 @@ Route::middleware('auth')->group(function () {
         Route::delete('/jadwal/{id}', [JadwalController::class, 'destroy'])
             ->name('jadwal.destroy');
 
+        // Stok
+        Route::get('/stok', function () {
 
-Route::get('/stok', function () {
+            $data = \Illuminate\Support\Facades\DB::table('monitoring_stoks')
+                ->latest('id')
+                ->first();
 
-    $data = \Illuminate\Support\Facades\DB::table('sensor_data')
-        ->latest('id')
-        ->first();
+            $jarakSensor = $data && isset($data->jarak_sensor)
+                ? (float) $data->jarak_sensor
+                : null;
 
-    $jarakSensor = $data && isset($data->jarak)
-        ? (float) $data->jarak
-        : null;
+            $waktuData = $data->created_at
+                ?? $data->updated_at
+                ?? $data->waktu_pembacaan
+                ?? null;
 
-    $waktuData = $data->created_at
-        ?? $data->updated_at
-        ?? $data->waktu
-        ?? null;
+            $umur = $waktuData
+                ? now()->timestamp - \Carbon\Carbon::parse($waktuData)->timestamp
+                : null;
 
-    $sensorTerhubung = $data
-        && $waktuData
-        && now()->diffInSeconds(
-            \Carbon\Carbon::parse($waktuData)
-        ) <= 30;
+            $sensorTerhubung = $umur !== null && $umur >= -2 && $umur <= 30;
 
-    return view('Stok', [
-        'jarakSensor' => $jarakSensor,
-        'sensorTerhubung' => $sensorTerhubung,
-        'sensorData' => $data
-    ]);
+            return view('stok', [
+                'jarakSensor' => $jarakSensor,
+                'sensorTerhubung' => $sensorTerhubung,
+                'sensorData' => $data
+            ]);
 
-})->name('stok');
+        })->name('stok');
 
- Route::get('/prediksi', [PrediksiStokController::class, 'index'])->name('prediksi.index');
-Route::post('/prediksi', [PrediksiStokController::class, 'update'])->name('prediksi.update');
+        // Prediksi
+        Route::get('/prediksi', [PrediksiStokController::class, 'index'])
+            ->name('prediksi.index');
+
+        Route::post('/prediksi', [PrediksiStokController::class, 'update'])
+            ->name('prediksi.update');
+
         // Riwayat
         Route::get('/riwayat', [RiwayatController::class, 'index'])
             ->name('riwayat');
 
         Route::get('/riwayat/export-pdf', [RiwayatController::class, 'exportPdf'])
             ->name('riwayat.export.pdf');
+
+        Route::get('/riwayat/export-csv', [RiwayatController::class, 'exportCsv'])
+            ->name('riwayat.export.csv');
 
     });
 
