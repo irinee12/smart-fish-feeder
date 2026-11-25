@@ -54,8 +54,7 @@
                 <h1>Riwayat Deteksi Mata Ikan</h1>
                 <p>Rekap hasil deteksi kesegaran berdasarkan tanggal.</p>
             </div>
-            <a href="javascript:history.back()" class="back">&larr; Kembali ke deteksi</a>
-        </div>
+           <a href="{{ route('deteksi.index') }}" class="back">&larr; Kembali ke deteksi</a>   </div>
     </header>
 
     <main class="wrap">

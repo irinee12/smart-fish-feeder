@@ -129,11 +129,19 @@ Route::middleware('auth')->group(function () {
 
         Route::post('/deteksi-mata', [Penjaga2Controller::class, 'processDeteksi'])
             ->name('deteksi.process');
-            Route::post('/deteksi/simpan', [RiwayatDeteksiController::class, 'simpan'])->name('riwayat.simpan');
-Route::get('/riwayat', [RiwayatDeteksiController::class, 'index'])->name('riwayat.index');
-Route::get('/riwayat/pdf', [RiwayatDeteksiController::class, 'pdf'])->name('riwayat.pdf');
-Route::get('/riwayat/excel', [RiwayatDeteksiController::class, 'excel'])->name('riwayat.excel');
 
+        // Riwayat deteksi mata ikan
+        Route::post('/deteksi/simpan', [RiwayatDeteksiController::class, 'simpan'])
+            ->name('deteksi-riwayat.simpan');
+
+        Route::get('/deteksi-riwayat', [RiwayatDeteksiController::class, 'index'])
+            ->name('deteksi-riwayat.index');
+
+        Route::get('/deteksi-riwayat/pdf', [RiwayatDeteksiController::class, 'pdf'])
+            ->name('deteksi-riwayat.pdf');
+
+        Route::get('/deteksi-riwayat/excel', [RiwayatDeteksiController::class, 'excel'])
+            ->name('deteksi-riwayat.excel');
 
     });
 
