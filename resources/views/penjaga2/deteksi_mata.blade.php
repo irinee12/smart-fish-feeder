@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Deteksi Kesegaran Mata Ikan</title>
 
     {{-- CSS TAMPILAN (dibawa langsung di dalam file ini) --}}
@@ -1098,7 +1098,11 @@ button.dt-chip:hover { background: #e4eff5; }
             </div>
 
             <!-- Tombol Keluar (Logout) Kanan -->
-            <div>
+            <div style="display:flex; gap:0.5rem; align-items:center;">
+                <a href="{{ route('riwayat.index') }}" class="dt-logout" style="text-decoration:none;">
+                    <svg class="dt-ico" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <span>Riwayat</span>
+                </a>
                 <form action="{{ route('logout') }}" method="POST" style="display:inline;">
                     @csrf
                     <button type="submit" class="dt-logout">
@@ -1402,8 +1406,8 @@ button.dt-chip:hover { background: #e4eff5; }
         // ====== DETEKSI DI BROWSER (TensorFlow.js) ======
         // Samakan GATE_THR dengan hasil sel 12 di Colab
         const GATE_THR = 0.80;
-        const URL_GATE = "/models/gate/model.json";
-        const URL_SEGAR = "/models/kesegaran/model.json";
+        const URL_GATE = "{{ asset('models/gate/model.json') }}";
+        const URL_SEGAR = "{{ asset('models/kesegaran/model.json') }}";
 
         // Model mulai dimuat saat halaman dibuka supaya klik Deteksi terasa cepat
         const modelSiap = Promise.all([
@@ -1462,6 +1466,13 @@ button.dt-chip:hover { background: #e4eff5; }
                 document.getElementById('inTidakSegar').value = (p * 100).toFixed(1);
                 document.getElementById('inMataSegar').value = ((1 - p) * 100).toFixed(1);
 
+                // Simpan ke riwayat (hanya foto yang lolos gatekeeper sampai di sini)
+                await simpanRiwayat(
+                    p >= 0.5 ? 'Tidak Segar' : 'Segar',
+                    Number((Math.max(p, 1 - p) * 100).toFixed(2)),
+                    berkas.name.startsWith('kamera_') ? 'kamera' : 'upload'
+                );
+
                 formUnggah.submit();   // kirim ke Laravel untuk menyimpan gambar & menampilkan hasil
             } catch (err) {
                 console.error(err);
@@ -1470,6 +1481,21 @@ button.dt-chip:hover { background: #e4eff5; }
                 if (x) x.dispose();
             }
         });
+        async function simpanRiwayat(hasil, akurasi, sumber = 'upload') {
+    try {
+        await fetch("{{ route('riwayat.simpan') }}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+            },
+            body: JSON.stringify({ hasil, akurasi, sumber })
+        });
+    } catch (e) {
+        console.error('Gagal menyimpan riwayat', e);
+    }
+}
     </script>
 
     <!-- JENDELA KAMERA (dengan panduan fokus) -->

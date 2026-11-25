@@ -8,6 +8,7 @@ use App\Http\Controllers\Penjaga2Controller;
 use App\Http\Controllers\RiwayatController;
 use App\Http\Controllers\PrediksiStokController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\RiwayatDeteksiController;
 
 // ======================================================
 // ROUTE AWAL
@@ -128,6 +129,11 @@ Route::middleware('auth')->group(function () {
 
         Route::post('/deteksi-mata', [Penjaga2Controller::class, 'processDeteksi'])
             ->name('deteksi.process');
+            Route::post('/deteksi/simpan', [RiwayatDeteksiController::class, 'simpan'])->name('riwayat.simpan');
+Route::get('/riwayat', [RiwayatDeteksiController::class, 'index'])->name('riwayat.index');
+Route::get('/riwayat/pdf', [RiwayatDeteksiController::class, 'pdf'])->name('riwayat.pdf');
+Route::get('/riwayat/excel', [RiwayatDeteksiController::class, 'excel'])->name('riwayat.excel');
+
 
     });
 
