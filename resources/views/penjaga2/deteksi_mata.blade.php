@@ -1099,7 +1099,7 @@ button.dt-chip:hover { background: #e4eff5; }
 
             <!-- Tombol Keluar (Logout) Kanan -->
             <div style="display:flex; gap:0.5rem; align-items:center;">
-                <a href="{{ route('riwayat.index') }}" class="dt-logout" style="text-decoration:none;">
+                <a href="{{ route('deteksi-riwayat.index') }}" class="dt-logout" style="text-decoration:none;">
                     <svg class="dt-ico" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                     <span>Riwayat</span>
                 </a>
@@ -1483,7 +1483,7 @@ button.dt-chip:hover { background: #e4eff5; }
         });
         async function simpanRiwayat(hasil, akurasi, sumber = 'upload') {
     try {
-        await fetch("{{ route('riwayat.simpan') }}", {
+        await fetch("{{ route('deteksi-riwayat.simpan') }}", {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
