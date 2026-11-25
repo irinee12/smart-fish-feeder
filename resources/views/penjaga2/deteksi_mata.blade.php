@@ -1155,6 +1155,8 @@ button.dt-chip:hover { background: #e4eff5; }
                     <!-- IMAGE DISPLAY AREA (EMPTY STATE BY DEFAULT) -->
                     <form action="{{ route('deteksi.process') }}" method="POST" enctype="multipart/form-data" id="uploadForm">
                         @csrf
+                        <input type="hidden" name="mata_segar" id="inMataSegar">
+                        <input type="hidden" name="tidak_segar" id="inTidakSegar">
                         <div id="dropArea" onclick="if(event.target.id!=='fileInput') document.getElementById('fileInput').click()" class="dt-drop">
 
                             @if(isset($gambar_path))
@@ -1193,6 +1195,9 @@ button.dt-chip:hover { background: #e4eff5; }
                                 </p>
                             </div>
                         </div>
+
+                        <!-- PESAN ERROR DARI BROWSER (bukan mata ikan, model gagal dimuat) -->
+                        <div class="dt-error hidden" id="errClient" role="alert"></div>
 
                         <!-- PESAN ERROR -->
                         @if($errors->any())
@@ -1233,6 +1238,19 @@ button.dt-chip:hover { background: #e4eff5; }
                         <span class="dt-chip dt-chip-teal">Hasil model</span>
                     </div>
                     <p class="dt-card-desc" style="margin-bottom: 1.25rem;">Estimasi berdasarkan gambar mata ikan.</p>
+
+                    <!-- HASIL: BUKAN MATA IKAN (ditampilkan oleh JavaScript) -->
+                    <div id="panelTolak" class="dt-banner is-stale hidden" role="alert">
+                        <div class="dt-banner-icon">
+                            <svg class="dt-ico-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4m0 4h.01"/></svg>
+                        </div>
+                        <div>
+                            <h4>Bukan foto mata ikan</h4>
+                            <p>Unggah foto mata ikan nila dari jarak dekat, lalu klik Deteksi lagi.</p>
+                        </div>
+                    </div>
+
+                    <div id="isiHasil">
 
                     @if(isset($hasil))
                         @php
@@ -1304,6 +1322,7 @@ button.dt-chip:hover { background: #e4eff5; }
                             <p>Silakan unggah gambar mata ikan terlebih dahulu dan klik tombol "Deteksi" untuk melihat hasil analisis.</p>
                         </div>
                     @endif
+                    </div>
                 </div>
 
                 <div class="dt-note">
@@ -1356,6 +1375,7 @@ button.dt-chip:hover { background: #e4eff5; }
     </footer>
 
     <!-- LOGIKA: PREVIEW GAMBAR & STATUS TOMBOL -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
     <script>
         const input = document.getElementById('fileInput');
         const preview = document.getElementById('previewImg');
@@ -1366,6 +1386,8 @@ button.dt-chip:hover { background: #e4eff5; }
         input.addEventListener('change', () => {
             const f = input.files[0];
             if (!f) return;
+            document.getElementById('panelTolak').classList.add('hidden');
+            document.getElementById('isiHasil').classList.remove('hidden');
 
             // sembunyikan gambar lama (hasil sebelumnya) dan placeholder
             document.querySelectorAll('#dropArea img:not(#previewImg)').forEach(i => i.classList.add('hidden'));
@@ -1377,10 +1399,76 @@ button.dt-chip:hover { background: #e4eff5; }
             infoFile.textContent = (f.size / 1024 / 1024).toFixed(2) + ' MB';
         });
 
-        document.getElementById('uploadForm').addEventListener('submit', () => {
-            const b = document.getElementById('btnDeteksi');
-            b.disabled = true;
-            b.querySelector('span').textContent = 'Memproses...';
+        // ====== DETEKSI DI BROWSER (TensorFlow.js) ======
+        // Samakan GATE_THR dengan hasil sel 12 di Colab
+        const GATE_THR = 0.80;
+        const URL_GATE = "/models/gate/model.json";
+        const URL_SEGAR = "/models/kesegaran/model.json";
+
+        // Model mulai dimuat saat halaman dibuka supaya klik Deteksi terasa cepat
+        const modelSiap = Promise.all([
+            tf.loadLayersModel(URL_GATE),
+            tf.loadLayersModel(URL_SEGAR)
+        ]);
+        modelSiap.catch(() => {});
+
+        const formUnggah = document.getElementById('uploadForm');
+        const tombol = document.getElementById('btnDeteksi');
+        const kotakError = document.getElementById('errClient');
+
+        function tampilError(teks) {
+            kotakError.textContent = teks;
+            kotakError.classList.remove('hidden');
+            tombol.disabled = false;
+            tombol.querySelector('span').textContent = 'Deteksi';
+        }
+
+        formUnggah.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            kotakError.classList.add('hidden');
+            document.getElementById('panelTolak').classList.add('hidden');
+            document.getElementById('isiHasil').classList.remove('hidden');
+
+            const berkas = input.files[0];
+            if (!berkas) { tampilError('Pilih gambar mata ikan terlebih dahulu.'); return; }
+
+            tombol.disabled = true;
+            tombol.querySelector('span').textContent = 'Memproses...';
+
+            let x;
+            try {
+                const [gate, kesegaran] = await modelSiap;
+
+                const gbr = new Image();
+                gbr.src = URL.createObjectURL(berkas);
+                await gbr.decode();
+
+                // Sama dengan training: resize 224x224, skala piksel ke [-1, 1] (MobileNetV2)
+                x = tf.tidy(() => tf.browser.fromPixels(gbr)
+                    .resizeBilinear([224, 224]).toFloat().div(127.5).sub(1).expandDims(0));
+
+                // Tahap 1: apakah ini mata ikan?
+                const pMata = (await gate.predict(x).data())[0];
+                if (pMata < GATE_THR) {
+                    document.getElementById('isiHasil').classList.add('hidden');
+                    document.getElementById('panelTolak').classList.remove('hidden');
+                    tombol.disabled = false;
+                    tombol.querySelector('span').textContent = 'Deteksi';
+                    return;
+                }
+
+                // Tahap 2: kesegaran (p = peluang tidak segar)
+                const p = (await kesegaran.predict(x).data())[0];
+                document.getElementById('inTidakSegar').value = (p * 100).toFixed(1);
+                document.getElementById('inMataSegar').value = ((1 - p) * 100).toFixed(1);
+
+                formUnggah.submit();   // kirim ke Laravel untuk menyimpan gambar & menampilkan hasil
+            } catch (err) {
+                console.error(err);
+                tampilError('Deteksi gagal: ' + (err && err.message ? err.message : err));
+            } finally {
+                if (x) x.dispose();
+            }
         });
     </script>
 

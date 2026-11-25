@@ -53,7 +53,7 @@ class RiwayatController extends Controller
             'akurasi'  => $akurasi->count() > 0 ? $akurasi->avg() : null,
         ];
 
-        return view('Riwayat', [
+        return view('riwayat', [
             'ringkasan'   => $ringkasan,
             'riwayat'     => $riwayat,
             'tanggal'     => $tanggal,

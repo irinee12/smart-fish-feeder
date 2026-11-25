@@ -18,7 +18,7 @@ class JadwalController extends Controller
         $sisaStokKg = $stok['sisa'];
         $keluarHariIniG = \App\Models\RiwayatPakan::totalGramKeluar();
 
-        return view('Jadwal', compact('jadwals', 'sisaStokKg', 'keluarHariIniG'));
+        return view('jadwal', compact('jadwals', 'sisaStokKg', 'keluarHariIniG'));
     }
 
     public function apiEsp32()
