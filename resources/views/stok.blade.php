@@ -55,8 +55,11 @@
 
     /*
     |--------------------------------------------------------------------------
-    | STATUS STOK BERDASARKAN JARAK
+    | STATUS STOK BERDASARKAN JARAK (3 KONDISI)
     |--------------------------------------------------------------------------
+    | Stok Banyak : 0  - 7 cm
+    | Stok Cukup  : >7 - 16 cm
+    | Stok Habis  : >16 - 23 cm (dan lebih)
     */
 
     if (!$adaDataSensor || !$jarakValid) {
@@ -66,40 +69,26 @@
         $keteranganStok = 'Belum ada pembacaan sensor yang valid.';
         $kondisiJarak = 'Belum tersedia';
 
-    } elseif ($jarakSensor <= 5) {
+    } elseif ($jarakSensor <= 7) {
 
-        $statusStok = 'Stok Aman';
+        $statusStok = 'Stok Banyak';
         $warnaStatus = 'safe';
         $keteranganStok = 'Permukaan pakan masih tinggi dan persediaan dalam kondisi banyak.';
         $kondisiJarak = 'Stok Banyak';
 
-    } elseif ($jarakSensor <= 11) {
+    } elseif ($jarakSensor <= 16) {
 
-        $statusStok = 'Stok Masih Cukup';
-        $warnaStatus = 'safe';
-        $keteranganStok = 'Persediaan pakan masih mencukupi untuk proses pemberian pakan.';
-        $kondisiJarak = 'Stok Masih Cukup';
-
-    } elseif ($jarakSensor <= 17) {
-
-        $statusStok = 'Persiapan Refill';
+        $statusStok = 'Stok Cukup';
         $warnaStatus = 'warning';
-        $keteranganStok = 'Permukaan pakan mulai rendah. Petani perlu mempersiapkan pengisian.';
-        $kondisiJarak = 'Perlu Persiapan Refill';
-
-    } elseif ($jarakSensor <= 22) {
-
-        $statusStok = 'Segera Refill';
-        $warnaStatus = 'danger';
-        $keteranganStok = 'Persediaan pakan hampir habis dan perlu segera diisi kembali.';
-        $kondisiJarak = 'Segera Refill';
+        $keteranganStok = 'Persediaan pakan masih mencukupi, namun petani perlu mempersiapkan pengisian.';
+        $kondisiJarak = 'Stok Cukup';
 
     } else {
 
-        $statusStok = 'Wadah Kosong';
+        $statusStok = 'Stok Habis';
         $warnaStatus = 'danger';
-        $keteranganStok = 'Wadah terdeteksi kosong. Buzzer akan memberikan peringatan.';
-        $kondisiJarak = 'Habis Bersih';
+        $keteranganStok = 'Persediaan pakan habis atau hampir habis dan perlu segera diisi kembali.';
+        $kondisiJarak = 'Stok Habis';
 
     }
 
@@ -408,6 +397,7 @@
 
 
             {{-- KETERANGAN BATAS PERSENTASE --}}
+            {{-- Persentase = (23 - jarak) / 23 x 100. Batas 7 cm = 69,6% dan 16 cm = 30,4% --}}
 
             <div class="stk-legend row mt-4 pt-3 border-top g-3">
 
@@ -418,13 +408,13 @@
                         <div class="stk-dot bg-success"></div>
 
                         <span class="text-muted small">
-                            Batas Aman
+                            Stok Banyak
                         </span>
 
                     </div>
 
                     <span class="badge bg-success bg-opacity-10 text-success">
-                        &gt; 40%
+                        &ge; 69,6%
                     </span>
 
                 </div>
@@ -437,13 +427,13 @@
                         <div class="stk-dot bg-warning"></div>
 
                         <span class="text-muted small">
-                            Menipis
+                            Stok Cukup
                         </span>
 
                     </div>
 
                     <span class="badge bg-warning bg-opacity-10 text-warning">
-                        15% - 40%
+                        30,4% - 69,6%
                     </span>
 
                 </div>
@@ -456,13 +446,13 @@
                         <div class="stk-dot bg-danger"></div>
 
                         <span class="text-muted small">
-                            Kritis / Habis
+                            Stok Habis
                         </span>
 
                     </div>
 
                     <span class="badge bg-danger bg-opacity-10 text-danger">
-                        &lt; 15%
+                        &lt; 30,4%
                     </span>
 
                 </div>
@@ -498,7 +488,7 @@
                     <div class="stk-range">
 
                         <span class="fw-bold text-success">
-                            0 - 5 cm
+                            0 - 7 cm
                         </span>
 
                         <span class="text-muted small d-block">
@@ -514,29 +504,12 @@
 
                     <div class="stk-range">
 
-                        <span class="fw-bold text-success">
-                            &gt; 5 - 11 cm
-                        </span>
-
-                        <span class="text-muted small d-block">
-                            Stok masih cukup
-                        </span>
-
-                    </div>
-
-                </div>
-
-
-                <div class="col-md-4">
-
-                    <div class="stk-range">
-
                         <span class="fw-bold text-warning">
-                            &gt; 11 - 17 cm
+                            &gt; 7 - 16 cm
                         </span>
 
                         <span class="text-muted small d-block">
-                            Perlu persiapan refill
+                            Stok cukup
                         </span>
 
                     </div>
@@ -549,28 +522,11 @@
                     <div class="stk-range">
 
                         <span class="fw-bold text-danger">
-                            &gt; 17 - 22 cm
+                            &gt; 16 - 23 cm
                         </span>
 
                         <span class="text-muted small d-block">
-                            Segera refill
-                        </span>
-
-                    </div>
-
-                </div>
-
-
-                <div class="col-md-4">
-
-                    <div class="stk-range">
-
-                        <span class="fw-bold text-danger">
-                            23 cm
-                        </span>
-
-                        <span class="text-muted small d-block">
-                            Habis bersih dan buzzer aktif
+                            Stok habis, segera refill
                         </span>
 
                     </div>
@@ -1032,12 +988,11 @@ document.addEventListener('DOMContentLoaded', function () {
     const el  = (id) => document.getElementById(id);
     const setText = (id, t) => { const e = el(id); if (e) e.textContent = t; };
 
+    // 3 kondisi: Stok Banyak (0-7), Stok Cukup (>7-16), Stok Habis (>16-23)
     function statusDariJarak(j) {
-        if (j <= 5)  return ['Stok Aman', 'safe', 'Permukaan pakan masih tinggi dan persediaan dalam kondisi banyak.', 'Stok Banyak'];
-        if (j <= 11) return ['Stok Masih Cukup', 'safe', 'Persediaan pakan masih mencukupi untuk proses pemberian pakan.', 'Stok Masih Cukup'];
-        if (j <= 17) return ['Persiapan Refill', 'warning', 'Permukaan pakan mulai rendah. Petani perlu mempersiapkan pengisian.', 'Perlu Persiapan Refill'];
-        if (j <= 22) return ['Segera Refill', 'danger', 'Persediaan pakan hampir habis dan perlu segera diisi kembali.', 'Segera Refill'];
-        return ['Wadah Kosong', 'danger', 'Wadah terdeteksi kosong. Buzzer akan memberikan peringatan.', 'Habis Bersih'];
+        if (j <= 7)  return ['Stok Banyak', 'safe', 'Permukaan pakan masih tinggi dan persediaan dalam kondisi banyak.', 'Stok Banyak'];
+        if (j <= 16) return ['Stok Cukup', 'warning', 'Persediaan pakan masih mencukupi, namun petani perlu mempersiapkan pengisian.', 'Stok Cukup'];
+        return ['Stok Habis', 'danger', 'Persediaan pakan habis atau hampir habis dan perlu segera diisi kembali.', 'Stok Habis'];
     }
 
     async function updateSensorData() {
